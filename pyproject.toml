@@ -1,0 +1,14 @@
+[tool.poetry]
+name = "app"
+version = "0.1.0"
+description = "Flask backend to manage user registration process"
+authors = ["Julian Herrera <julianherrerab95@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
