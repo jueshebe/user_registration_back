@@ -1,0 +1,23 @@
+[tool.poetry]
+name = "app"
+version = "0.1.0"
+description = "Flask backend to manage user registration process"
+authors = ["Julian Herrera <julianherrerab95@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+flask = "^3.1.0"
+pydantic = "^2.10.6"
+flask-injector = "^0.15.0"
+uwsgi = "^2.0.28"
+
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.3.5"
+pytest-flask = "^1.3.0"
+debugpy = "^1.8.13"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

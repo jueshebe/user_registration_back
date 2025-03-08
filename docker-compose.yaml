@@ -1,0 +1,18 @@
+version: '3.8'
+services:
+  web-metrics:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: user_registration_back:latest
+    container_name: users_registration_back
+    restart: "no"
+    tty: false 
+    ports:
+      - 5676:5676
+      - 8080:8080
+    environment:
+      - APP_MODE=$APP_MODE
+      - LOG_LEVEL=$LOG_LEVEL
+      - IP=$IP
+      - PORT=$PORT
