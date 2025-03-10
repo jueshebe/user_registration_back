@@ -1,6 +1,6 @@
 """PirPos client."""
 
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 import os
 import json
 from logging import Logger
@@ -12,6 +12,7 @@ from app.v1.clients.pos_system.utils import (
     ClientsResponseValidator,
     ClientResponseValidator,
     define_client_from_pirpos_response,
+    define_payload_from_client
 )
 from app.v1.utils.errors import CredentialsError, FetchDataError
 
@@ -67,6 +68,18 @@ class PirposConnector(SystemProvider):
 
         return access_token
 
+    def __get_headers(self) -> Dict[str, str]:
+        """Get headers with credentials
+
+        Returns:
+            Dict[str, str]: Headers with credentials
+        """
+        headers = {
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {self.__pirpos_access_token}",
+        }
+        return headers
+
     def get_client(self, document: int) -> Optional[Client]:
         """Get client by document.
 
@@ -79,10 +92,7 @@ class PirposConnector(SystemProvider):
         Returns:
             Optional[Client]: Client found.
         """
-        headers = {
-            "Content-Type": "application/json",
-            "Authorization": f"Bearer {self.__pirpos_access_token}",
-        }
+        headers = self.__get_headers()
         url = (
             "https://api.pirpos.com/clients?pagination=true"
             f"&limit=10&page=0&clientData={document}&"
@@ -117,7 +127,16 @@ class PirposConnector(SystemProvider):
         Args:
             client (Client): Client to upload.
         """
-        pass
+        headers = self.__get_headers()
+        url = "https://api.pirpos.com/clients"
+        payload: str = define_payload_from_client(client)
+
+        try:
+            response = requests.request("POST", url, headers=headers, data=payload)
+        except Exception as error:
+            raise FetchDataError(f"Can't download PirPos clients\n {error}")
+        if not response.ok:
+            raise FetchDataError(f"Can't download PirPos clients\n {response.text}")
 
 
 if __name__ == "__main__":
@@ -128,5 +147,11 @@ if __name__ == "__main__":
         raise ValueError("PIRPOS_USER_NAME and PIRPOS_PASSWORD must be set")
 
     connector = PirposConnector(user_name, user_password, logging.getLogger())
-    client = connector.get_client(123456789)
-    print(client)
+    client = connector.get_client(1121923074)
+    new_client = Client(
+        name="julian2",
+        last_name="herrera",
+        document=11219230742,
+        document_type=11,  # type: ignore
+    )
+    connector.upload_client(client)

@@ -14,7 +14,7 @@ class CityDetail(BaseModel):
     state_code: str
 
 
-class Responsibilities(Enum):
+class Responsibilities(str, Enum):
     """Dian responsibilities."""
 
     O_13 = "O-13"
@@ -46,7 +46,8 @@ class Client(BaseModel):
     """Client info."""
 
     name: str
-    email: str
+    last_name: Optional[str]=None
+    email: Optional[str] = None
     document: int
     check_digit: Optional[int] = None
     document_type: DocumentType
