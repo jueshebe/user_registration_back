@@ -1,6 +1,6 @@
 """PirPos client."""
 
-from typing import List, Optional, Dict, Any
+from typing import Optional, Dict
 import os
 import json
 from logging import Logger
@@ -9,12 +9,10 @@ import requests
 from app.v1.models import Client
 from app.v1.clients.pos_system.base import SystemProvider
 from app.v1.clients.pos_system.utils import (
-    ClientsResponseValidator,
-    ClientResponseValidator,
-    define_client_from_pirpos_response,
-    define_payload_from_client
+    define_payload_from_client,
+    get_clients_by_filter
 )
-from app.v1.utils.errors import CredentialsError, FetchDataError
+from app.v1.utils.errors import CredentialsError, SendDataError
 
 
 class PirposConnector(SystemProvider):
@@ -69,7 +67,7 @@ class PirposConnector(SystemProvider):
         return access_token
 
     def __get_headers(self) -> Dict[str, str]:
-        """Get headers with credentials
+        """Get headers with credentials.
 
         Returns:
             Dict[str, str]: Headers with credentials
@@ -93,24 +91,7 @@ class PirposConnector(SystemProvider):
             Optional[Client]: Client found.
         """
         headers = self.__get_headers()
-        url = (
-            "https://api.pirpos.com/clients?pagination=true"
-            f"&limit=10&page=0&clientData={document}&"
-        )
-
-        try:
-            response = requests.request("GET", url, headers=headers)
-        except Exception as error:
-            raise FetchDataError(f"Can't download PirPos clients\n {error}")
-        if not response.ok:
-            raise FetchDataError(f"Can't download PirPos clients\n {response.text}")
-
-        data = response.json()
-        raw_clients: List[ClientResponseValidator] = ClientsResponseValidator(
-            **data
-        ).data
-
-        clients: List[Client] = define_client_from_pirpos_response(raw_clients)
+        clients, _ = get_clients_by_filter(str(document), headers)
 
         if len(clients) == 0:
             return None
@@ -122,7 +103,7 @@ class PirposConnector(SystemProvider):
         return clients[0]
 
     def upload_client(self, client: Client) -> None:
-        """Upload client to POS system.
+        """Upload client data to the POS system.
 
         Args:
             client (Client): Client to upload.
@@ -134,9 +115,33 @@ class PirposConnector(SystemProvider):
         try:
             response = requests.request("POST", url, headers=headers, data=payload)
         except Exception as error:
-            raise FetchDataError(f"Can't download PirPos clients\n {error}")
+            raise SendDataError(f"Can't create a customer in PirPos\n {error}")
         if not response.ok:
-            raise FetchDataError(f"Can't download PirPos clients\n {response.text}")
+            raise SendDataError(f"Can't create a customer in PirPos\n {response.text}")
+
+    def update_client(self, client: Client) -> None:
+        """Update client to POS system.
+
+        Args:
+            client (Client): Client to update.
+        """
+        headers = self.__get_headers()
+        clients, ids = get_clients_by_filter(str(client.document), headers)
+
+        if len(clients) == 0:
+            raise SendDataError("Can't update a client. No client found for document: %s.", client.document)
+
+        if len(clients) > 1:
+            raise SendDataError("Can't update a client. More than one client found for document: %s.", client.document)
+        url = "https://api.pirpos.com/clients"
+        payload: str = define_payload_from_client(client, ids[0])
+
+        try:
+            response = requests.request("POST", url, headers=headers, data=payload)
+        except Exception as error:
+            raise SendDataError(f"Can't update customer in PirPos\n {error}")
+        if not response.ok:
+            raise SendDataError(f"Can't update customer in PirPos\n {response.text}")
 
 
 if __name__ == "__main__":
@@ -147,11 +152,13 @@ if __name__ == "__main__":
         raise ValueError("PIRPOS_USER_NAME and PIRPOS_PASSWORD must be set")
 
     connector = PirposConnector(user_name, user_password, logging.getLogger())
-    client = connector.get_client(1121923074)
+    client = connector.get_client(90038794)
     new_client = Client(
         name="julian2",
         last_name="herrera",
-        document=11219230742,
+        document=123456789,
         document_type=11,  # type: ignore
     )
-    connector.upload_client(client)
+    connector.upload_client(new_client)
+    new_client.name = "julian3"
+    connector.update_client(new_client)

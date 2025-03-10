@@ -1,9 +1,11 @@
 """POS systems utils."""
 
-from pydantic import BaseModel, model_validator
-from typing import List, Optional, Dict, Any
+from pydantic import BaseModel, model_validator, Field
+from typing import List, Optional, Dict, Any, Tuple
 from enum import Enum
+import requests
 from app.v1.models import Client, Responsibilities, DocumentType, CityDetail
+from app.v1.utils.errors import FetchDataError
 
 
 class CityDetailValidator(BaseModel):
@@ -73,6 +75,7 @@ mapping_responsibility_name = {
 class ClientResponseValidator(BaseModel):
     """Validate clients response from PirPos."""
 
+    id: Optional[str] = Field(default=None, alias="_id")
     name: str
     document: int
     idDocumentType: DocumentType
@@ -87,18 +90,22 @@ class ClientResponseValidator(BaseModel):
     phone: Optional[str] = None
     address: Optional[str] = None
 
-    @model_validator(mode='before')
+    @model_validator(mode="before")
     def check_model(cls, values: Dict[str, Any]) -> Dict[str, Any]:
         """Check model."""
         if values["idDocumentType"]:
             if isinstance(values["idDocumentType"], DocumentType):
                 values["idDocumentType"] = values["idDocumentType"].value
-            values["documentName"] = mapping_name_document_type[values["idDocumentType"]].value
+            values["documentName"] = mapping_name_document_type[
+                values["idDocumentType"]
+            ].value
 
         if values["responsibilities"]:
             if isinstance(values["responsibilities"], Responsibilities):
                 values["responsibilities"] = values["responsibilities"].value
-            values["responsibilityName"] = mapping_responsibility_name[values["responsibilities"]].value
+            values["responsibilityName"] = mapping_responsibility_name[
+                values["responsibilities"]
+            ].value
 
         return values
 
@@ -149,7 +156,7 @@ def define_client_from_pirpos_response(
     return clients
 
 
-def define_payload_from_client(client: Client) -> str:
+def define_payload_from_client(client: Client, pirpos_id: Optional[str] = None) -> str:
     """Create payload to upload client to PirPos.
 
     Args:
@@ -172,6 +179,7 @@ def define_payload_from_client(client: Client) -> str:
         city_detail = None
 
     payload_object = ClientResponseValidator(
+        _id=pirpos_id,
         name=client.name,
         document=client.document,
         idDocumentType=client.document_type,
@@ -184,5 +192,47 @@ def define_payload_from_client(client: Client) -> str:
         phone=client.phone,
         address=client.address,
     )
-    json_data = payload_object.json(exclude_none=True)
+    json_data = payload_object.json(exclude_none=True, by_alias=True)
     return json_data
+
+
+def get_clients_by_filter(
+    filter: str, headers: Dict[str, Any]
+) -> Tuple[List[Client], List[str]]:
+    """Get pirpos clients using some filter.
+
+    Args:
+        filter(str): Filter to search.
+        headers(Dict[str, Any]): Headers with credentials.
+
+    Raises:
+        FetchDataError: Raised when can't download PirPos clients.
+
+    Returns:
+        List[Client]: Clients found
+    """
+    url = (
+        "https://api.pirpos.com/clients?pagination=true"
+        f"&limit=10&page=0&clientData={filter}&"
+    )
+
+    try:
+        response = requests.request("GET", url, headers=headers)
+    except Exception as error:
+        raise FetchDataError(f"Can't download PirPos clients\n {error}")
+    if not response.ok:
+        raise FetchDataError(f"Can't download PirPos clients\n {response.text}")
+
+    data = response.json()
+    raw_clients: List[ClientResponseValidator] = ClientsResponseValidator(**data).data
+
+    list_ids: List[str] = []
+    for raw_client in raw_clients:
+        if not raw_client.id:
+            raise FetchDataError(
+                f"Not found _id for client. document {raw_client.document}"
+            )
+        list_ids.append(raw_client.id)
+
+    clients: List[Client] = define_client_from_pirpos_response(raw_clients)
+    return clients, list_ids
