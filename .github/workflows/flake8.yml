@@ -26,5 +26,5 @@ jobs:
         poetry install --no-interaction --no-root
 
     - name: Run Flake8
-          run: |
-            poetry run flake8 .
+      run: |
+        poetry run flake8 .
