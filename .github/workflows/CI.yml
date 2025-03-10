@@ -23,7 +23,7 @@ jobs:
 
     - name: Install dependencies with Poetry
       run: |
-        poetry install --no-interaction --no-root
+        poetry install --no-interaction
 
     - name: Run Flake8
       run: |
