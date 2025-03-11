@@ -3,7 +3,7 @@
 import os
 import logging
 from flask_injector import singleton, Binder
-from app.v1.clients import PirposConnector
+from app.v1.clients import PirposConnector, DummyConnector, SystemProvider
 from app.v1.use_cases import UsersManager
 
 
@@ -27,11 +27,11 @@ def dependencies(binder: Binder) -> None:
     user_name = os.getenv("PIRPOS_USER_NAME", None)
     password = os.getenv("PIRPOS_PASSWORD", None)
     if not user_name or not password:
-        raise ValueError("PIRPOS_USER_NAME and PIRPOS_PASSWORD must be set")
-
-    pos_client = PirposConnector(user_name, password, logger)
+        logger.warning("Pirpos credentials not found")
+        pos_client: SystemProvider = DummyConnector()
+    else:
+        pos_client = PirposConnector(user_name, password, logger)
     users_manager = UsersManager(pos_client, logger)
-
     binder.bind(UsersManager, to=users_manager, scope=singleton)
 
     logger.info("Dependencies manager finished")
