@@ -2,17 +2,21 @@
 
 from flask_injector import FlaskInjector
 from flask import Flask
-from app.v1.api import ping
+from app.v1.api import ping, users
 from app.v1.module import dependencies
 
 # Active endpoints noted as following:
 # (url_prefix, blueprint_object)
 PRIVATE_ENDPOINTS = (
     ("/", ping),
+    ("/users", users),
 )
-PUBLIC_ENDPOINTS = (("/", ping),)
+PUBLIC_ENDPOINTS = (
+    ("/", ping),
+    ("/users", users),
+)
 
-PUBLIC_URL_PREFIX = "inscriptions"
+PUBLIC_URL_PREFIX = "pos-connector"
 INTERNAL_URL_PREFIX = "internal"
 
 

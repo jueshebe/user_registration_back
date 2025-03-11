@@ -108,6 +108,10 @@ class PirposConnector(SystemProvider):
         Args:
             client (Client): Client to upload.
         """
+        current_client = self.get_client(client.document)
+        if current_client and current_client.document == client.document:
+            raise SendDataError("Client already exists in PirPos")
+
         headers = self.__get_headers()
         url = "https://api.pirpos.com/clients"
         payload: str = define_payload_from_client(client)
