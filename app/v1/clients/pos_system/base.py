@@ -13,8 +13,8 @@ class SystemProvider(ABC):
 
     @abstractmethod
     def upload_client(self, client: Client) -> None:
-        """Upload client to POS system."""
+        """Upload client in the POS system."""
 
     @abstractmethod
     def update_client(self, client: Client) -> None:
-        """Update client to POS system."""
+        """Update client in the POS system."""
