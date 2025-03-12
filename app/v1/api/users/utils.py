@@ -18,8 +18,8 @@ class GetClientValidator(BaseModel):
         if isinstance(value, str):
             try:
                 value = int(value)
-            except ValueError:
-                raise ValueError(f"Invalid document type: {value}")
+            except ValueError as error:
+                raise ValueError(f"Invalid document type: {value}") from error
         if isinstance(value, int):
             return value
         raise ValueError(f"Invalid document type: {value}")

@@ -28,6 +28,9 @@ poetry-plugin-export = "^1.9.0"
 [tool.poetry.scripts]
 generate-requirements = "scripts:generate_requirements"
 
+[tool.pylint.'MESSAGES CONTROL']
+max-line-length = 140
+
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"

@@ -31,7 +31,7 @@ def dependencies(binder: Binder) -> None:
         pos_client: SystemProvider = DummyConnector()
     else:
         pos_client = PirposConnector(user_name, password, logger)
-    users_manager = UsersManager(pos_client, logger)
+    users_manager = UsersManager(pos_client)
     binder.bind(UsersManager, to=users_manager, scope=singleton)
 
     logger.info("Dependencies manager finished")

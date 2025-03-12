@@ -2,8 +2,8 @@
 
 from logging import Logger
 import json
-from flask import Blueprint, Response, request
 from http import HTTPStatus
+from flask import Blueprint, Response, request
 from pydantic import ValidationError
 from app.v1.use_cases import UsersManager
 from app.v1.models import Client
@@ -14,7 +14,7 @@ users = Blueprint("users", __name__)
 
 
 @users.route("/<int:user_id>", methods=["GET"])
-def get_user(user_id: int, users_manager: UsersManager, logger: Logger) -> Response:
+def get_user(user_id: int, users_manager: UsersManager) -> Response:
     """Get user."""
     validator = GetClientValidator(**request.args)  # type: ignore
     user = users_manager.get_user(user_id)
@@ -31,7 +31,7 @@ def get_user(user_id: int, users_manager: UsersManager, logger: Logger) -> Respo
 
 
 @users.route("/", methods=["POST"])
-def post_user(users_manager: UsersManager, logger: Logger) -> Response:
+def post_user(users_manager: UsersManager) -> Response:
     """Create an user."""
     user = Client(**request.json)  # type: ignore
     users_manager.upload_user(user)
@@ -40,7 +40,7 @@ def post_user(users_manager: UsersManager, logger: Logger) -> Response:
 
 
 @users.route("/", methods=["PUT"])
-def update_user(users_manager: UsersManager, logger: Logger) -> Response:
+def update_user(users_manager: UsersManager) -> Response:
     """Update an user."""
     user = Client(**request.json)  # type: ignore
     validator = GetClientValidator(**request.args)  # type: ignore
@@ -59,7 +59,7 @@ def update_user(users_manager: UsersManager, logger: Logger) -> Response:
 
 
 @users.errorhandler(ValidationError)  # type: ignore
-def InputError(error: ValidationError) -> Response:
+def input_error(error: ValidationError) -> Response:
     """Handle input validation errors.
 
     Args:

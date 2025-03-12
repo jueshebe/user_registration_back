@@ -1,6 +1,5 @@
 """Users Manager module."""
 from typing import Optional
-from logging import Logger
 from app.v1.clients import SystemProvider
 from app.v1.models import Client
 
@@ -8,7 +7,7 @@ from app.v1.models import Client
 class UsersManager():
     """Class to manage users."""
 
-    def __init__(self, connector: SystemProvider, logger: Logger):
+    def __init__(self, connector: SystemProvider):
         """Initialize the users manager.
 
         Args:
@@ -16,7 +15,6 @@ class UsersManager():
             logger (Logger): Logger to use.
         """
         self.__connector = connector
-        self.__logger = logger
 
     def get_user(self, document: int) -> Optional[Client]:
         """Get user by document.
