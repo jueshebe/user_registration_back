@@ -44,8 +44,9 @@ jobs:
     # Ejecutar Pylint y agregar comentarios en el PR
     - name: Run pylint with Reviewdog
       continue-on-error: true  # Asegura que Reviewdog pueda reportar antes de que falle
+
       run: |
-        poetry run pylint app/* --output-format=parseable | $HOME/.local/bin/reviewdog -efm="%f:%l:%c: %m" -name="pylint" -reporter=github-check -fail-level=error
+        poetry run pylint app/* --output-format=json | $HOME/.local/bin/reviewdog -f=pylint -name="pylint" -reporter=github-check -fail-level=error
       env:
         REVIEWDOG_GITHUB_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
