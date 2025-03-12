@@ -1,9 +1,9 @@
 """POS systems utils."""
 
-from pydantic import BaseModel, model_validator, Field
 from typing import List, Optional, Dict, Any, Tuple
 from enum import Enum
 import requests
+from pydantic import BaseModel, model_validator, Field
 from app.v1.models import Client, Responsibilities, DocumentType, CityDetail
 from app.v1.utils.errors import FetchDataError
 
@@ -91,7 +91,7 @@ class ClientResponseValidator(BaseModel):
     address: Optional[str] = None
 
     @model_validator(mode="before")
-    def check_model(cls, values: Dict[str, Any]) -> Dict[str, Any]:
+    def check_model(self, values: Dict[str, Any]) -> Dict[str, Any]:
         """Check model."""
         if values["idDocumentType"]:
             if isinstance(values["idDocumentType"], DocumentType):
@@ -165,7 +165,7 @@ def define_payload_from_client(client: Client, pirpos_id: Optional[str] = None) 
     Returns:
         str: Payload to upload client to PirPos.
     """
-    is_social_reason = True if client.document_type == DocumentType.NIT else False
+    is_social_reason = client.document_type == DocumentType.NIT
 
     if client.city_detail:
         city_detail = CityDetailValidator(
@@ -197,7 +197,7 @@ def define_payload_from_client(client: Client, pirpos_id: Optional[str] = None) 
 
 
 def get_clients_by_filter(
-    filter: str, headers: Dict[str, Any]
+    search_filter: str, headers: Dict[str, Any]
 ) -> Tuple[List[Client], List[str]]:
     """Get pirpos clients using some filter.
 
@@ -213,13 +213,13 @@ def get_clients_by_filter(
     """
     url = (
         "https://api.pirpos.com/clients?pagination=true"
-        f"&limit=10&page=0&clientData={filter}&"
+        f"&limit=10&page=0&clientData={search_filter}&"
     )
 
     try:
-        response = requests.request("GET", url, headers=headers)
+        response = requests.request("GET", url, headers=headers, timeout=20)
     except Exception as error:
-        raise FetchDataError(f"Can't download PirPos clients\n {error}")
+        raise FetchDataError(f"Can't download PirPos clients\n {error}") from error
     if not response.ok:
         raise FetchDataError(f"Can't download PirPos clients\n {response.text}")
 

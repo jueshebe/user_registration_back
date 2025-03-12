@@ -50,7 +50,7 @@ class PirposConnector(SystemProvider):
             "password": self.__pirpos_password,
         }
         headers = {"Content-Type": "application/json"}
-        response = requests.post(url, data=json.dumps(values), headers=headers)
+        response = requests.post(url, data=json.dumps(values), headers=headers, timeout=20)
 
         if not response.ok:
             raise CredentialsError(
@@ -96,10 +96,14 @@ class PirposConnector(SystemProvider):
         if len(clients) == 0:
             return None
         if len(clients) > 1:
-            self.__logger.warning(
-                "More than one client found for id %s. Using the first element",
-                document,
-            )
+            for client in clients:
+                if client.document == document:
+                    return client
+
+        self.__logger.warning(
+            "More than one client found for id %s. Using the first element",
+            document,
+        )
         return clients[0]
 
     def upload_client(self, client: Client) -> None:
@@ -117,9 +121,9 @@ class PirposConnector(SystemProvider):
         payload: str = define_payload_from_client(client)
 
         try:
-            response = requests.request("POST", url, headers=headers, data=payload)
+            response = requests.request("POST", url, headers=headers, data=payload, timeout=20)
         except Exception as error:
-            raise SendDataError(f"Can't create a customer in PirPos\n {error}")
+            raise SendDataError(f"Can't create a customer in PirPos\n {error}") from error
         if not response.ok:
             raise SendDataError(f"Can't create a customer in PirPos\n {response.text}")
 
@@ -133,17 +137,17 @@ class PirposConnector(SystemProvider):
         clients, ids = get_clients_by_filter(str(client.document), headers)
 
         if len(clients) == 0:
-            raise SendDataError("Can't update a client. No client found for document: %s.", client.document)
+            raise SendDataError(f"Can't update a client. No client found for document: {client.document}")
 
         if len(clients) > 1:
-            raise SendDataError("Can't update a client. More than one client found for document: %s.", client.document)
+            raise SendDataError(f"Can't update a client. More than one client found for document: {client.document}")
         url = "https://api.pirpos.com/clients"
         payload: str = define_payload_from_client(client, ids[0])
 
         try:
-            response = requests.request("POST", url, headers=headers, data=payload)
+            response = requests.request("POST", url, headers=headers, data=payload, timeout=20)
         except Exception as error:
-            raise SendDataError(f"Can't update customer in PirPos\n {error}")
+            raise SendDataError(f"Can't update customer in PirPos\n {error}") from error
         if not response.ok:
             raise SendDataError(f"Can't update customer in PirPos\n {response.text}")
 
@@ -156,7 +160,7 @@ if __name__ == "__main__":
         raise ValueError("PIRPOS_USER_NAME and PIRPOS_PASSWORD must be set")
 
     connector = PirposConnector(user_name, user_password, logging.getLogger())
-    client = connector.get_client(90038794)
+    test_client = connector.get_client(90038794)
     new_client = Client(
         name="julian2",
         last_name="herrera",

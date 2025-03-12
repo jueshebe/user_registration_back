@@ -11,7 +11,7 @@ class CityDetail(BaseModel):
     city_name: str
     city_state: str
     city_code: str
-    country_code: str  # TODO: Must be Enum
+    country_code: str
     state_code: str
 
 

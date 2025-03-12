@@ -1,0 +1,41 @@
+************* Module scripts
+scripts.py:9:0: C0301: Line too long (106/100) (line-too-long)
+************* Module app.__main__
+app/__main__.py:6:0: C0103: Constant name "host" doesn't conform to UPPER_CASE naming style (invalid-name)
+************* Module app.v1.clients.pos_system.utils
+app/v1/clients/pos_system/utils.py:94:4: E0213: Method 'check_model' should have "self" as first argument (no-self-argument)
+app/v1/clients/pos_system/utils.py:168:23: R1719: The if expression can be replaced with 'test' (simplifiable-if-expression)
+app/v1/clients/pos_system/utils.py:200:4: W0622: Redefining built-in 'filter' (redefined-builtin)
+app/v1/clients/pos_system/utils.py:220:19: W3101: Missing timeout argument for method 'requests.request' can cause your program to hang indefinitely (missing-timeout)
+app/v1/clients/pos_system/utils.py:222:8: W0707: Consider explicitly re-raising using 'raise FetchDataError(f"Can't download PirPos clients\n {error}") from error' (raise-missing-from)
+app/v1/clients/pos_system/utils.py:4:0: C0411: standard import "typing.List" should be placed before third party import "pydantic.BaseModel" (wrong-import-order)
+app/v1/clients/pos_system/utils.py:5:0: C0411: standard import "enum.Enum" should be placed before third party import "pydantic.BaseModel" (wrong-import-order)
+************* Module app.v1.clients.pos_system.pirpos
+app/v1/clients/pos_system/pirpos.py:140:0: C0301: Line too long (108/100) (line-too-long)
+app/v1/clients/pos_system/pirpos.py:143:0: C0301: Line too long (119/100) (line-too-long)
+app/v1/clients/pos_system/pirpos.py:53:19: W3101: Missing timeout argument for method 'requests.post' can cause your program to hang indefinitely (missing-timeout)
+app/v1/clients/pos_system/pirpos.py:99:16: W0621: Redefining name 'client' from outer scope (line 163) (redefined-outer-name)
+app/v1/clients/pos_system/pirpos.py:109:28: W0621: Redefining name 'client' from outer scope (line 163) (redefined-outer-name)
+app/v1/clients/pos_system/pirpos.py:124:23: W3101: Missing timeout argument for method 'requests.request' can cause your program to hang indefinitely (missing-timeout)
+app/v1/clients/pos_system/pirpos.py:126:12: W0707: Consider explicitly re-raising using 'raise SendDataError(f"Can't create a customer in PirPos\n {error}") from error' (raise-missing-from)
+app/v1/clients/pos_system/pirpos.py:130:28: W0621: Redefining name 'client' from outer scope (line 163) (redefined-outer-name)
+app/v1/clients/pos_system/pirpos.py:140:12: W0715: Exception arguments suggest string formatting might be intended (raising-format-tuple)
+app/v1/clients/pos_system/pirpos.py:143:12: W0715: Exception arguments suggest string formatting might be intended (raising-format-tuple)
+app/v1/clients/pos_system/pirpos.py:148:23: W3101: Missing timeout argument for method 'requests.request' can cause your program to hang indefinitely (missing-timeout)
+app/v1/clients/pos_system/pirpos.py:150:12: W0707: Consider explicitly re-raising using 'raise SendDataError(f"Can't update customer in PirPos\n {error}") from error' (raise-missing-from)
+************* Module app.v1.models.client
+app/v1/models/client.py:14:24: W0511: TODO: Must be Enum (fixme)
+************* Module app.v1.api.users.utils
+app/v1/api/users/utils.py:22:16: W0707: Consider explicitly re-raising using 'except ValueError as exc' and 'raise ValueError(f'Invalid document type: {value}') from exc' (raise-missing-from)
+************* Module app.v1.api.users.views
+app/v1/api/users/views.py:17:56: W0613: Unused argument 'logger' (unused-argument)
+app/v1/api/users/views.py:34:43: W0613: Unused argument 'logger' (unused-argument)
+app/v1/api/users/views.py:43:45: W0613: Unused argument 'logger' (unused-argument)
+app/v1/api/users/views.py:62:0: C0103: Function name "InputError" doesn't conform to snake_case naming style (invalid-name)
+app/v1/api/users/views.py:6:0: C0411: standard import "http.HTTPStatus" should be placed before third party import "flask.Blueprint" (wrong-import-order)
+************* Module app.v1.use_cases.users_manager
+app/v1/use_cases/users_manager.py:19:8: W0238: Unused private member `UsersManager.__logger` (unused-private-member)
+
+------------------------------------------------------------------
+Your code has been rated at 9.14/10 (previous run: 9.14/10, +0.00)
+
