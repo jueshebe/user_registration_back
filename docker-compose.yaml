@@ -16,3 +16,5 @@ services:
       - LOG_LEVEL=$LOG_LEVEL
       - IP=$IP
       - PORT=$PORT
+      - PIRPOS_USER_NAME=$PIRPOS_USER_NAME
+      - PIRPOS_PASSWORD=$PIRPOS_PASSWORD

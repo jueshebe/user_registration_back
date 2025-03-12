@@ -96,10 +96,14 @@ class PirposConnector(SystemProvider):
         if len(clients) == 0:
             return None
         if len(clients) > 1:
-            self.__logger.warning(
-                "More than one client found for id %s. Using the first element",
-                document,
-            )
+            for client in clients:
+                if client.document == document:
+                    return client
+
+        self.__logger.warning(
+            "More than one client found for id %s. Using the first element",
+            document,
+        )
         return clients[0]
 
     def upload_client(self, client: Client) -> None:
