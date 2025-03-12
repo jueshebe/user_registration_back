@@ -17,7 +17,6 @@ PUBLIC_ENDPOINTS = (
 )
 
 PUBLIC_URL_PREFIX = "pos-connector"
-INTERNAL_URL_PREFIX = "internal"
 
 
 def create_app() -> Flask:
@@ -28,18 +27,11 @@ def create_app() -> Flask:
 
     app.register_blueprint(ping, url_prefix="/", name=f"{ping.name}")
     # register each active blueprint
-    for url, blueprint in PRIVATE_ENDPOINTS:
-        app.register_blueprint(
-            blueprint,
-            url_prefix=f"/{INTERNAL_URL_PREFIX}/{url}",
-            name=f"suscriber-{blueprint.name}",
-        )
-
     for url, blueprint in PUBLIC_ENDPOINTS:
         app.register_blueprint(
             blueprint,
             url_prefix=f"/{PUBLIC_URL_PREFIX}/{url}",
-            name=f"suscriber2-{blueprint.name}",
+            name=f"suscriber-{blueprint.name}",
         )
 
     FlaskInjector(app=app, modules=[dependencies])
