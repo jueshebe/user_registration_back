@@ -4,7 +4,8 @@ on: [pull_request]
 
 permissions:
   contents: read
-  pull-requests: write  # Permite que Reviewdog comente en el PR
+  pull-requests: write
+  checks: write
 
 jobs:
   build:
