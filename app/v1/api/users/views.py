@@ -39,7 +39,7 @@ def post_user(users_manager: UsersManager) -> Response:
         users_manager.upload_user(user)
         response = json.dumps({"message": "User created successfully"})
         return Response(response=response, status=200, content_type="application/json")
-    except SendDataError as error:
+    except SendDataError:
         return Response(response="client not created", status=HTTPStatus.BAD_REQUEST, content_type="text/plain")
 
 
