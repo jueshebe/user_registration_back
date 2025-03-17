@@ -19,7 +19,7 @@ PUBLIC_URL_PREFIX = "pos-connector"
 def create_app() -> Flask:
     """Create Flask app."""
     app = Flask(__name__)
-    CORS(app)  # TODO: change this for an nginx routing
+    CORS(app)
     # accepts both /endpoint and /endpoint/ as valid URLs
     app.url_map.strict_slashes = False
 
