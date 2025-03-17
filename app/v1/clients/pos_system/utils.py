@@ -91,7 +91,8 @@ class ClientResponseValidator(BaseModel):
     address: Optional[str] = None
 
     @model_validator(mode="before")
-    def check_model(self, values: Dict[str, Any]) -> Dict[str, Any]:
+    @classmethod
+    def check_model(cls, values: Dict[str, Any]) -> Dict[str, Any]:
         """Check model."""
         if values["idDocumentType"]:
             if isinstance(values["idDocumentType"], DocumentType):
@@ -113,7 +114,7 @@ class ClientResponseValidator(BaseModel):
 class ClientsResponseValidator(BaseModel):
     """Validate clients response from PirPos."""
 
-    data: list[ClientResponseValidator]
+    data: List[ClientResponseValidator]
 
 
 def define_client_from_pirpos_response(
