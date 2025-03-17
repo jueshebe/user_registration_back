@@ -8,6 +8,7 @@ from pydantic import ValidationError
 from app.v1.use_cases import UsersManager
 from app.v1.models import Client
 from app.v1.api.users.utils import GetClientValidator
+from app.v1.utils.errors import SendDataError
 
 
 users = Blueprint("users", __name__)
@@ -34,9 +35,12 @@ def get_user(user_id: int, users_manager: UsersManager) -> Response:
 def post_user(users_manager: UsersManager) -> Response:
     """Create an user."""
     user = Client(**request.json)  # type: ignore
-    users_manager.upload_user(user)
-    response = json.dumps({"message": "User created successfully"})
-    return Response(response=response, status=200, content_type="application/json")
+    try:
+        users_manager.upload_user(user)
+        response = json.dumps({"message": "User created successfully"})
+        return Response(response=response, status=200, content_type="application/json")
+    except SendDataError as error:
+        return Response(response="client not created", status=HTTPStatus.BAD_REQUEST, content_type="text/plain")
 
 
 @users.route("/", methods=["PUT"])

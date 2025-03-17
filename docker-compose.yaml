@@ -1,6 +1,6 @@
 version: '3.8'
 services:
-  web-metrics:
+  registration_back:
     build:
       context: .
       dockerfile: Dockerfile
@@ -18,3 +18,13 @@ services:
       - PORT=$PORT
       - PIRPOS_USER_NAME=$PIRPOS_USER_NAME
       - PIRPOS_PASSWORD=$PIRPOS_PASSWORD
+
+  swagger-ui:
+      image: swaggerapi/swagger-ui
+      container_name: swagger-ui
+      ports:
+        - "8070:8080"
+      volumes:
+        - ./docs:/api
+      environment:
+        SWAGGER_JSON: /api/openapi.yaml

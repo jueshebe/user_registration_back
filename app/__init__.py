@@ -2,15 +2,12 @@
 
 from flask_injector import FlaskInjector
 from flask import Flask
+from flask_cors import CORS
 from app.v1.api import ping, users
 from app.v1.module import dependencies
 
 # Active endpoints noted as following:
 # (url_prefix, blueprint_object)
-PRIVATE_ENDPOINTS = (
-    ("/", ping),
-    ("/users", users),
-)
 PUBLIC_ENDPOINTS = (
     ("/", ping),
     ("/users", users),
@@ -22,6 +19,7 @@ PUBLIC_URL_PREFIX = "pos-connector"
 def create_app() -> Flask:
     """Create Flask app."""
     app = Flask(__name__)
+    CORS(app)  # TODO: change this for an nginx routing
     # accepts both /endpoint and /endpoint/ as valid URLs
     app.url_map.strict_slashes = False
 
