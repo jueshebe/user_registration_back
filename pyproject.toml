@@ -13,6 +13,7 @@ uwsgi = "^2.0.28"
 requests = "^2.32.3"
 flask-cors = "^5.0.1"
 pydantic = "^2.10.6"
+email-validator = "^2.2.0"
 
 
 [tool.poetry.group.dev.dependencies]
