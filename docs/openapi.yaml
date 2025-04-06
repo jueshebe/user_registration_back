@@ -1,0 +1,255 @@
+openapi: 3.0.3
+info:
+  title: User Registration API
+  description: |-
+    This app facilitates automatic user registration using Python and Flask. It provides a unified interface to connect different providers and allow customers to register, review their saved data, and modify it effortlessly, avoiding unnecessary delays or complications. Currently, only [PirPos](https://loggro.com/restobar/) is supported.
+  contact:
+    email: julianherrerab95@gmail.com
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  version: 1.0.0
+servers:
+  - url: http://localhost:80
+tags:
+  - name: Ping
+    description: Resouce to check system status
+  - name: Users
+    description: Resources to get, upload or update customer data in the system
+    
+paths:
+  /pos-connector/ping:
+    get:
+      tags:
+        - Ping
+      summary: Check system status
+      responses:
+        '200':
+          description: Returns "pong" to indicate the system is running.
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: "pong"
+  /pos-connector/users/{customer_id}:
+    get:
+      tags:
+        - Users
+      summary: Create new customer
+      description: Retrieve customer data
+      parameters:
+        - name: customer_id
+          in: path
+          required: true
+          description: Customer document
+          schema:
+            type: integer
+        - name: document_type
+          in: query
+          description: Current customer document type. See available [documents](https://www.dian.gov.co/Transaccional/DevolucionesCompensacin/1442%20-%20%20Relaci%C3%B3n%20DEX%20y%20Documentos%20de%20Exportaci%C3%B3n.pdf)
+          required: true
+          explode: true
+          schema:
+            type: integer
+            enum:
+              - 11
+              - 12
+              - 13
+              - 21
+              - 22
+              - 31
+              - 41
+              - 42
+              - 43
+              - 47
+              - 48
+              - 50
+              - 91
+        - name: email
+          in: query
+          description: Current customer email
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful operation. Client created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Client'
+        '404':
+          description: Client not found
+  /pos-connector/users:
+    post:
+      tags:
+        - Users
+      summary: Create new customer
+      description: Create a new customer. This endpoint ensures that the document is unique and not already registered.      
+      requestBody:
+        description: New customer data. Data to be updated
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Client'
+        required: true
+      responses:
+        '200':
+          description: Successful operation. Client created.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "User created successfully"
+        '400':
+          description: Invalid request. Client not created.
+    put:
+      tags:
+        - Users
+      summary: Update customer data
+      description: You can update the data of an already created customer. Because you are about to modify some data then you need to prove that you know at least some information of this customer before the update.
+      parameters:
+        - name: document_type
+          in: query
+          description: Current customer document type. See available [documents](https://www.dian.gov.co/Transaccional/DevolucionesCompensacin/1442%20-%20%20Relaci%C3%B3n%20DEX%20y%20Documentos%20de%20Exportaci%C3%B3n.pdf)
+          required: true
+          explode: true
+          schema:
+            type: integer
+            enum:
+              - 11
+              - 12
+              - 13
+              - 21
+              - 22
+              - 31
+              - 41
+              - 42
+              - 43
+              - 47
+              - 48
+              - 50
+              - 91
+        - name: email
+          in: query
+          description: Current customer email
+          required: true
+          schema:
+            type: string
+        
+      requestBody:
+        description: New customer data. Data to be updated
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Client'
+        required: true
+      responses:
+        '200':
+          description: Successful operation. Client updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "User updated successfully"
+        '404':
+          description: Client not found
+
+ 
+components:
+  schemas:
+    Client:
+      type: object
+      required:
+        - name
+        - email
+        - document
+        - document_type
+      properties:
+        name:
+          type: string
+          description: Client's first name
+        last_name:
+          type: string
+          nullable: true
+          description: Client's last name (optional)
+        email:
+          type: string
+          format: email
+          nullable: false
+          description: Client's email (optional)
+        document:
+          type: integer
+          description: Client's document number
+        check_digit:
+          type: integer
+          nullable: true
+          description: Check digit for the document (optional)
+        document_type:
+          type: integer
+          enum:
+            - 11
+            - 12
+            - 13
+            - 21
+            - 22
+            - 31
+            - 41
+            - 42
+            - 43
+            - 47
+            - 48
+            - 50
+            - 91
+          description: Type of document according to DIAN
+        phone:
+          type: string
+          nullable: true
+          description: Client's phone number (optional)
+        address:
+          type: string
+          nullable: true
+          description: Client's address (optional)
+        responsibilities:
+          type: string
+          enum:
+            - "O-13"
+            - "O-15"
+            - "O-23"
+            - "O-47"
+            - "R-99-PN"
+          default: "R-99-PN"
+          description: DIAN responsibilities
+        city_detail:
+          $ref: '#/components/schemas/CityDetail'
+
+    CityDetail:
+      type: object
+      required:
+        - city_name
+        - city_state
+        - city_code
+        - country_code
+        - state_code
+      properties:
+        city_name:
+          type: string
+          description: Name of the city
+        city_state:
+          type: string
+          description: State where the city is located
+        city_code:
+          type: string
+          description: Code of the city
+        country_code:
+          type: string
+          description: Country code
+        state_code:
+          type: string
+          description: State code

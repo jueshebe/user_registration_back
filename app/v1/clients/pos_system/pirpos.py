@@ -1,46 +1,34 @@
 """PirPos client."""
-from typing import List, Tuple, Optional
+
+from typing import Optional, Dict
 import os
 import json
 from logging import Logger
 import logging
-import time
-from datetime import datetime, timedelta
 import requests
-from pirpos2siigo.models import Client, Product, Invoice, InvoiceStatus
-from pirpos2siigo.clients.utils import (
-    load_pirpos2siigo_config,
-    create_client,
-    create_pirpos_product,
-    create_invoice,
-    ErrorPirposToken,
-    ErrorLoadingPirposClients,
-    ErrorLoadingPirposProducts,
-    ErrorLoadingPirposInvoices,
+from app.v1.models import Client
+from app.v1.clients.pos_system.base import SystemProvider
+from app.v1.clients.pos_system.utils import (
+    define_payload_from_client,
+    get_clients_by_filter,
 )
+from app.v1.utils.errors import CredentialsError, SendDataError
 
 
-class PirposConnector:
-    """Class to manage pirpos invoices, products and clients."""
+class PirposConnector(SystemProvider):
+    """Class to manage PIRPOS connection."""
 
     def __init__(
         self,
         pirpos_username: str,
         pirpos_password: str,
-        configuration_path: str,
-        logger: Logger = logging.getLogger(),
+        logger: Logger,
     ):
         """Parameters used to make a connection."""
         self.__logger = logger
         self.__pirpos_username = pirpos_username
         self.__pirpos_password = pirpos_password
-        self.__configuration = load_pirpos2siigo_config(configuration_path)
         self.__pirpos_access_token = self.__get_pirpos_access_token()
-        self.__products: List[Product]
-        self.__clients: List[Client]
-        # self.get_pirpos_clients()
-        # self.get_pirpos_products()
-
         self.__logger.info("Pirpos connector initialized.")
 
     def __get_pirpos_access_token(self) -> str:
@@ -62,10 +50,12 @@ class PirposConnector:
             "password": self.__pirpos_password,
         }
         headers = {"Content-Type": "application/json"}
-        response = requests.post(url, data=json.dumps(values), headers=headers)
+        response = requests.post(
+            url, data=json.dumps(values), headers=headers, timeout=20
+        )
 
         if not response.ok:
-            raise ErrorPirposToken(
+            raise CredentialsError(
                 "Error getting Pirpos token, check email and password"
             )
 
@@ -74,97 +64,129 @@ class PirposConnector:
             access_token = data["tokenCurrent"]
             assert isinstance(access_token, str)
         else:
-            raise ErrorPirposToken(
-                "tokenCurrent key is not present in the respose"
-            )
+            raise CredentialsError("tokenCurrent key is not present in the respose")
 
         return access_token
 
-    def get_pirpos_clients(self, batch_clients: int = 200) -> None:
-        """Get pirpos clients.
+    def __get_headers(self) -> Dict[str, str]:
+        """Get headers with credentials.
 
-        Parameters
-        ----------
-        batch_clients : int, optional
-            batch used to download clients, by default 200
+        Returns:
+            Dict[str, str]: Headers with credentials
         """
-        page = 0
-        clients: List[Client] = []
         headers = {
             "Content-Type": "application/json",
             "Authorization": f"Bearer {self.__pirpos_access_token}",
         }
+        return headers
 
-        while True:
-            url = (
-                "https://api.pirpos.com/clients?pagination=true"
-                f"&limit={batch_clients}&page={page}&clientData=&"
+    def get_client(self, document: int) -> Optional[Client]:
+        """Get client by document.
+
+        Args:
+            document (int): Document to search.
+
+        Raises:
+            FetchDataError: Raised when can't download PirPos clients.
+
+        Returns:
+            Optional[Client]: Client found.
+        """
+        headers = self.__get_headers()
+        clients, _ = get_clients_by_filter(str(document), headers)
+
+        if len(clients) == 0:
+            return None
+        if len(clients) > 1:
+            for client in clients:
+                if client.document == document:
+                    return client
+
+        self.__logger.warning(
+            "More than one client found for id %s. Using the first element",
+            document,
+        )
+        return clients[0]
+
+    def upload_client(self, client: Client) -> None:
+        """Upload client data to the POS system.
+
+        Args:
+            client (Client): Client to upload.
+        """
+        current_client = self.get_client(client.document)
+        if current_client and current_client.document == client.document:
+            raise SendDataError("Client already exists in PirPos")
+
+        headers = self.__get_headers()
+        url = "https://api.pirpos.com/clients"
+        payload: str = define_payload_from_client(client)
+
+        try:
+            response = requests.request(
+                "POST", url, headers=headers, data=payload, timeout=20
+            )
+        except Exception as error:
+            raise SendDataError(
+                f"Can't create a customer in PirPos\n {error}"
+            ) from error
+        if not response.ok:
+            raise SendDataError(f"Can't create a customer in PirPos\n {response.text}")
+
+    def update_client(self, client: Client) -> None:
+        """Update client to POS system.
+
+        Args:
+            client (Client): Client to update.
+        """
+        headers = self.__get_headers()
+        clients, ids = get_clients_by_filter(str(client.document), headers)
+
+        if len(clients) == 0:
+            raise SendDataError(
+                f"Can't update a client. No client found for document: {client.document}"
             )
 
-            response = requests.request("GET", url, headers=headers)
-            if not response.ok:
-                raise ErrorLoadingPirposClients(
-                    f"Can't download PirPos clients\n {response.text}"
-                )
+        clients_with_same_document = [
+            (found_client, id)
+            for found_client, id in zip(clients, ids)
+            if found_client.document == client.document
+        ]
 
-            data = response.json()[
-                "data"
-            ]  # TODO: check incoming data with BaseModel class
-            if len(data) == 0:
-                break
+        if len(clients_with_same_document) > 1:
+            raise SendDataError(
+                f"Can't update a client. More than one client found for document: {client.document}"
+            )
+        url = "https://api.pirpos.com/clients"
+        payload: str = define_payload_from_client(
+            client, clients_with_same_document[0][1]
+        )
 
-            for client_data in data:
-                name = client_data["name"]
-                client = create_client(
-                    configuration_file=self.__configuration,
-                    name=name,
-                    siigo_id=None,
-                    pirpos_id=client_data.get("_id"),
-                    email=client_data.get("email"),
-                    phone=client_data.get("phone"),
-                    address=client_data.get("address"),
-                    document=client_data.get("document"),
-                    check_digit=client_data.get("checkDigit"),
-                    document_type=client_data.get("idDocumentType"),
-                    responsibilities=client_data.get("responsibilities"),
-                    city_name=client_data.get("cityDetail", {}).get("cityName"),
-                    city_state=client_data.get("cityDetail", {}).get(
-                        "stateName"
-                    ),
-                    city_code=client_data.get("cityDetail", {}).get("cityCode"),
-                    country_code=client_data.get("cityDetail", {}).get(
-                        "countryCode"
-                    ),
-                    state_code=client_data.get("cityDetail", {}).get(
-                        "stateCode"
-                    ),
-                )
-                clients.append(client)
-            page += 1
-
-        self.__clients = clients
-
-    @property
-    def clients(self) -> List[Client]:
-        """Getter for clients."""
-        return self.__clients
+        try:
+            response = requests.request(
+                "POST", url, headers=headers, data=payload, timeout=20
+            )
+        except Exception as error:
+            raise SendDataError(f"Can't update customer in PirPos\n {error}") from error
+        if not response.ok:
+            raise SendDataError(f"Can't update customer in PirPos\n {response.text}")
 
 
 if __name__ == "__main__":
     user_name = os.getenv("PIRPOS_USER_NAME")
     user_password = os.getenv("PIRPOS_PASSWORD")
-    PATH = (
-        "/Users/julianestehe/Programs/asadero/pirpos2siigo/configuration.JSON"
+
+    if user_name is None or user_password is None:
+        raise ValueError("PIRPOS_USER_NAME and PIRPOS_PASSWORD must be set")
+
+    connector = PirposConnector(user_name, user_password, logging.getLogger())
+    test_client = connector.get_client(90038794)
+    new_client = Client(
+        name="julian2",
+        last_name="herrera",
+        document=123456789,
+        document_type=11,  # type: ignore
     )
-    PATH = "/home/julian/projects/pirpos2siigo/configuration.JSON"
-    assert isinstance(user_name, str)
-    assert isinstance(user_password, str)
-    connector = PirposConnector(
-        user_name, user_password, PATH, logging.getLogger()
-    )
-    # connector.get_pirpos_products()
-    date_1 = datetime(2023, 1, 2)
-    date_2 = datetime(2023, 1, 2)
-    time_1 = time.time()
-    loaded_invoices = connector.get_pirpos_invoices_per_client(date_1, date_2)
-    print(time.time() - time_1)
+    connector.upload_client(new_client)
+    new_client.name = "julian3"
+    connector.update_client(new_client)

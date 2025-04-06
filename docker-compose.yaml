@@ -1,6 +1,6 @@
 version: '3.8'
 services:
-  web-metrics:
+  registration_back:
     build:
       context: .
       dockerfile: Dockerfile
@@ -16,3 +16,27 @@ services:
       - LOG_LEVEL=$LOG_LEVEL
       - IP=$IP
       - PORT=$PORT
+      - PIRPOS_USER_NAME=$PIRPOS_USER_NAME
+      - PIRPOS_PASSWORD=$PIRPOS_PASSWORD
+
+  swagger-ui:
+      image: swaggerapi/swagger-ui
+      container_name: swagger-ui
+      ports:
+        - "8070:8080"
+      volumes:
+        - ./docs:/api
+      environment:
+        SWAGGER_JSON: /api/openapi.yaml
+        BASE_URL: /docs
+
+  nginx:
+      image: nginx:1.25.3
+      container_name: nginx
+      ports:
+        - "80:80"
+      volumes:
+        - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+      depends_on:
+        - registration_back
+        - swagger-ui
