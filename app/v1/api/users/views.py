@@ -7,7 +7,7 @@ from flask import Blueprint, Response, request
 from pydantic import ValidationError
 from app.v1.use_cases import UsersManager
 from app.v1.models import Client
-from app.v1.api.users.utils import GetClientValidator
+from app.v1.api.users.utils import GetClientValidator, validate_user
 from app.v1.utils.errors import SendDataError
 
 
@@ -35,6 +35,7 @@ def get_user(user_id: int, users_manager: UsersManager) -> Response:
 def post_user(users_manager: UsersManager) -> Response:
     """Create an user."""
     user = Client(**request.json)  # type: ignore
+    validate_user(user)
     try:
         users_manager.upload_user(user)
         response = json.dumps({"message": "User created successfully"})
@@ -48,6 +49,7 @@ def update_user(users_manager: UsersManager) -> Response:
     """Update an user."""
     user = Client(**request.json)  # type: ignore
     validator = GetClientValidator(**request.args)  # type: ignore
+    validate_user(user)
 
     current_data = users_manager.get_user(user.document)
     if (  # check if the requester knows at least 3 fields of the object
