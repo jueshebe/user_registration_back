@@ -2,7 +2,8 @@
 
 from typing import Union
 from pydantic import BaseModel, field_validator
-from app.v1.models import DocumentType
+from email_validator import validate_email
+from app.v1.models import DocumentType, Client
 
 
 class GetClientValidator(BaseModel):
@@ -23,3 +24,15 @@ class GetClientValidator(BaseModel):
         if isinstance(value, int):
             return value
         raise ValueError(f"Invalid document type: {value}")
+
+
+def validate_user(user: Client) -> None:
+    """Validate user data."""
+    validate_email(str(user.email))
+
+    if not user.name or user.name == "":
+        raise ValueError("Name is required")
+
+    if user.document_type == DocumentType.NIT:
+        if user.check_digit is None:
+            raise ValueError("Check digit is required")
