@@ -31,6 +31,17 @@ def get_user(user_id: int, users_manager: UsersManager) -> Response:
     return Response(response="Client not found", status=404, content_type="text/plain")
 
 
+@users.route("/<int:user_id>/exists", methods=["GET"])
+def check_exists(user_id: int, users_manager: UsersManager) -> Response:
+    """Get user."""
+    user = users_manager.get_user(user_id)
+    if user and user.document == user_id:
+        return Response(
+            response="user is present", status=200, content_type="text/plain"
+        )
+    return Response(response="user is not present", status=404, content_type="text/plain")
+
+
 @users.route("/", methods=["POST"])
 def post_user(users_manager: UsersManager) -> Response:
     """Create an user."""

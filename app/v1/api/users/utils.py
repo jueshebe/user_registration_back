@@ -34,5 +34,5 @@ def validate_user(user: Client) -> None:
         raise ValueError("Name is required")
 
     if user.document_type == DocumentType.NIT:
-        if not user.check_digit:
+        if user.check_digit is None:
             raise ValueError("Check digit is required")
