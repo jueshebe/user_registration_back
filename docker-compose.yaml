@@ -6,7 +6,7 @@ services:
       dockerfile: Dockerfile
     image: user_registration_back:latest
     container_name: users_registration_back
-    restart: "no"
+    restart: unless-stopped
     tty: false 
     ports:
       - 5676:5676
@@ -22,6 +22,7 @@ services:
   swagger-ui:
       image: swaggerapi/swagger-ui
       container_name: swagger-ui
+      restart: unless-stopped
       ports:
         - "8070:8080"
       volumes:
@@ -33,10 +34,57 @@ services:
   nginx:
       image: nginx:1.25.3
       container_name: nginx
+      restart: unless-stopped
       ports:
         - "80:80"
       volumes:
         - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+        - ./nginx/dist/font:/usr/share/nginx/html:ro
       depends_on:
         - registration_back
         - swagger-ui
+
+#   elasticsearch:
+#       image: docker.elastic.co/elasticsearch/elasticsearch:8.12.2
+#       container_name: elasticsearch
+#       restart: unless-stopped
+#       environment:
+#         - discovery.type=single-node
+#         - xpack.security.enabled=false
+#         - ES_JAVA_OPTS=-Xms512m -Xmx512m
+#         - xpack.ml.enabled=false
+#         - bootstrap.memory_lock=true
+#       ports:
+#         - "9200:9200"
+#       volumes:
+#         - esdata:/usr/share/elasticsearch/data
+#
+#   kibana:
+#       image: docker.elastic.co/kibana/kibana:8.12.2
+#       container_name: kibana
+#       restart: unless-stopped
+#       depends_on:
+#         - elasticsearch
+#       ports:
+#         - "5601:5601"
+#       environment:
+#         - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+#
+#   filebeat:
+#       image: docker.elastic.co/beats/filebeat:8.12.2
+#       container_name: filebeat
+#       restart: unless-stopped
+#       user: root
+#       depends_on:
+#         - elasticsearch
+#         - kibana
+#       volumes:
+#         - /var/lib/docker/containers:/var/lib/docker/containers:ro
+#         - /var/run/docker.sock:/var/run/docker.sock:ro
+#         - ./filebeat.yml:/usr/share/filebeat/filebeat.yml:ro
+#       labels:
+#         co.elastic.logs/enabled: "false"
+#
+# volumes:
+#   esdata:
+#     name: esdata
