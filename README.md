@@ -79,4 +79,3 @@ If you prefer to use your own front-end application, you can update the static f
 Nginx <a href="nginx/default.conf" target="_blank">configuration</a> to ensure everything works properly.
 
 <img  src="docs/images/front.png" alt="loggro image" width="100%">
-<img  src="docs/images/front2.png" alt="loggro image" width="100%">
