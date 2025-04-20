@@ -2,7 +2,7 @@ openapi: 3.0.3
 info:
   title: User Registration API
   description: |-
-    This app facilitates automatic user registration using Python and Flask. It provides a unified interface to connect different providers and allow customers to register, review their saved data, and modify it effortlessly, avoiding unnecessary delays or complications. Currently, only [PirPos](https://loggro.com/restobar/) is supported.
+    This app facilitates automatic user registration using Python and Flask. It provides a unified interface to connect different providers and allow customers to register, review their saved data, and modify it effortlessly, avoiding unnecessary delays or complications. Currently, only [Loggro](https://loggro.com/restobar/) is supported.
   contact:
     email: julianherrerab95@gmail.com
   license:
@@ -35,7 +35,7 @@ paths:
     get:
       tags:
         - Users
-      summary: Create new customer
+      summary: Get some customer data
       description: Retrieve customer data
       parameters:
         - name: customer_id
@@ -80,6 +80,34 @@ paths:
                 $ref: '#/components/schemas/Client'
         '404':
           description: Client not found
+  /pos-connector/users/{customer_id}/exists:
+    get:
+      tags:
+        - Users
+      summary: check if a customer exists
+      description: Just check if a customer exists in the system
+      parameters:
+        - name: customer_id
+          in: path
+          required: true
+          description: Customer document
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: user is present
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: User is present
+        '404':
+          description: user is not present
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: User is not present
   /pos-connector/users:
     post:
       tags:
@@ -110,7 +138,7 @@ paths:
       tags:
         - Users
       summary: Update customer data
-      description: You can update the data of an already created customer. Because you are about to modify some data then you need to prove that you know at least some information of this customer before the update.
+      description: You can update the data of an already created customer. Because you are about to modify some data then you need to prove that you know at least some information of this customer before the update him.
       parameters:
         - name: document_type
           in: query
