@@ -18,9 +18,9 @@ The application exposes an API to get, update, and create customers in the POS s
 <p>
 <br>
 
-# How it works?
+# How does it work?
 <p>
-The systems consists of a group of containers that you can run with the following command:
+The system consists of a group of containers that you can run with the following command:
 <p>
 
 ```bash
@@ -66,7 +66,7 @@ If the APP_MODE variable contains any other value, then the Flask application wi
 ## API Endpoints
 
 The exposed endpoints are explained in the <a href="docs/openapi.yaml" target="_blank">Swagger documentation</a>
-. Here you will find the request parameters and which responses will be returned. If the Swagger conainer is already running, then 
+. Here you will find the request parameters and which responses will be returned. If the Swagger container is already running, then 
 you can access it using the following <a href="http://localhost/docs" target="_blank">link</a>.
 
 <img  src="docs/images/swagger.png" alt="loggro image" width="100%">
