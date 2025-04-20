@@ -97,6 +97,10 @@ class PirposConnector(SystemProvider):
 
         if len(clients) == 0:
             return None
+
+        if len(clients) == 1:
+            return clients[0]
+
         if len(clients) > 1:
             for client in clients:
                 if client.document == document:
