@@ -18,7 +18,7 @@ The application exposes an API to get, update, and create customers in the POS s
 <p>
 <br>
 
-# How does it works?
+# How does it work?
 <p>
 The system consists of a group of containers that you can run with the following command:
 <p>
