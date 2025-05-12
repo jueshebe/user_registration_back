@@ -146,7 +146,7 @@ class PirposConnector(SystemProvider):
             client (Client): Client to update.
         """
         headers = self.__get_headers()
-        clients, ids = get_clients_by_filter(str(client.document), headers)
+        clients, ids = get_clients_by_filter(self.__pirpos_domain, str(client.document), headers)
 
         if len(clients) == 0:
             raise SendDataError(
@@ -193,6 +193,7 @@ class PirposConnector(SystemProvider):
         if not response.ok:
             raise FetchDataError(f"Non 200 response getting an invoice from PirPos\n {response.text}")
         return get_invoice_from_json(response.json(), prefix, number)
+
 
 if __name__ == "__main__":
     user_name = os.getenv("PIRPOS_USER_NAME")

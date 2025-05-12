@@ -251,51 +251,8 @@ def get_clients_by_filter(
     return clients, list_ids
 
 
-def get_invoice_from_json(
-    raw_data: List[Dict[str, Any]], prefix: str, number: int
-) -> Optional[Invoice]:
-    """Transform the Json data to get an Invoice object."""
-    if not raw_data:
-        return None
-    first_invoice = raw_data[0]
-
-    business = Business(**first_invoice["business"])
-
-    employee_name = first_invoice["seller"]["name"]
-    seller = Employee(name=employee_name, employee_id=employee_name)
-
-    employee_name = first_invoice["cashier"]["name"]
-    cachier = Employee(name=employee_name, employee_id=employee_name)
-
-    sell_point = first_invoice["table"]["name"]
-
-    raw_client_data = first_invoice["client"]
-    client = Client(
-        name=raw_client_data["name"],
-        last_name=raw_client_data.get("last_name"),
-        email=raw_client_data.get("email"),
-        document=raw_client_data["document"],
-        check_digit=raw_client_data.get("checkDigit"),
-        document_type=int(raw_client_data["idDocumentType"]),  # type: ignore
-        phone=raw_client_data.get("phone"),
-        address=raw_client_data.get("address"),
-        responsibilities=raw_client_data["responsibilities"],
-    )
-
-    created_on = first_invoice["createdOn"]
-    anulated_date = first_invoice.get("canceled", {}).get("date")
-
-    raw_payments = first_invoice["paid"]["paymentMethodValue"]
-    payments: List[Payment] = []
-    for raw_payment in raw_payments:
-        payments.append(
-            Payment(
-                payment_name=raw_payment["paymentMethod"],
-                payment_value=raw_payment["value"],
-            )
-        )
-
-    raw_products = first_invoice["products"]
+def define_invoice_products(raw_products: List[Dict[str, Any]]) -> List[InvoiceProduct]:
+    """Define invioce products from response."""
     products: List[InvoiceProduct] = []
     for raw_product in raw_products:
         product_taxes: List[TaxInfo] = []
@@ -317,23 +274,67 @@ def get_invoice_from_json(
             quantity=raw_product["quantity"],
             tax=product_taxes
         ))
+    return products
 
-    total = first_invoice["total"]
-    status = first_invoice["status"]
+
+def define_payments(raw_payments: List[Dict[str, Any]]) -> List[Payment]:
+    """Define payments from response."""
+    payments: List[Payment] = []
+    for raw_payment in raw_payments:
+        payments.append(
+            Payment(
+                payment_name=raw_payment["paymentMethod"],
+                payment_value=raw_payment["value"],
+            )
+        )
+    return payments
+
+
+def get_invoice_from_json(
+    raw_data: List[Dict[str, Any]], prefix: str, number: int
+) -> Optional[Invoice]:
+    """Transform the Json data to get an Invoice object."""
+    if not raw_data:
+        return None
+    first_invoice = raw_data[0]
+
+    business = Business(**first_invoice["business"])
+
+    employee_name = first_invoice["seller"]["name"]
+    seller = Employee(name=employee_name, employee_id=employee_name)
+
+    employee_name = first_invoice["cashier"]["name"]
+    cachier = Employee(name=employee_name, employee_id=employee_name)
+
+    raw_client_data = first_invoice["client"]
+    client = Client(
+        name=raw_client_data["name"],
+        last_name=raw_client_data.get("last_name"),
+        email=raw_client_data.get("email"),
+        document=raw_client_data["document"],
+        check_digit=raw_client_data.get("checkDigit"),
+        document_type=int(raw_client_data["idDocumentType"]),  # type: ignore
+        phone=raw_client_data.get("phone"),
+        address=raw_client_data.get("address"),
+        responsibilities=raw_client_data["responsibilities"],
+    )
+
+    payments = define_payments(first_invoice["products"])
+    products = define_invoice_products(first_invoice["products"])
 
     invoice = Invoice(
         business=business,
         cachier=cachier,
-        sell_point=sell_point,
+        sell_point=first_invoice["table"]["name"],
         seller=seller,
         client=client,
-        created_on=created_on,
-        anulated_date=anulated_date,
+        created_on=first_invoice["createdOn"],
+        anulated_date=first_invoice.get("canceled", {}).get("date"),
         invoice_prefix=prefix,
         invoice_number=number,
         payment_method=payments,
         products=products,
-        total=total,
-        status=status,
+        total=first_invoice["total"],
+        status=first_invoice["status"],
     )
     return invoice

@@ -1,14 +1,10 @@
 """Module with ping endpoint."""
 
 from logging import Logger
-import json
 from http import HTTPStatus
-from flask import Blueprint, Response, request
+from flask import Blueprint, Response
 from pydantic import ValidationError
 from app.v1.use_cases import InvoicesManager
-from app.v1.models import Client
-from app.v1.api.users.utils import GetClientValidator, validate_user
-from app.v1.utils.errors import SendDataError
 
 
 invoices = Blueprint("invoices", __name__)
