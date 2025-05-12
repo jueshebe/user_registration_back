@@ -16,6 +16,8 @@ tags:
     description: Resouce to check system status
   - name: Users
     description: Resources to get, upload or update customer data in the system
+  - name: Invoices
+    description: Resources to get system invoices
     
 paths:
   /pos-connector/ping:
@@ -188,6 +190,40 @@ paths:
                     example: "User updated successfully"
         '404':
           description: Client not found
+
+  /pos-connector/invoices/{prefix}/{invoice_number}:
+    get:
+      tags:
+        - Invoices
+      summary: Get some invoice
+      description: Retrieve invoice data
+      parameters:
+        - name: prefix
+          in: path
+          required: true
+          description: Invoice prefix. Something like 'FVE'
+          schema:
+            type: string
+        - name: invoice_number
+          in: path
+          required: true
+          description: Invoice number. Something like 12345
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Invoice data  #  TODO: Update invoice schema
+          # content:
+          #   application/json:
+          #     schema:
+          #       $ref: '#/components/schemas/Client'
+        '404':
+          description: Invoice is not present
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: Invoice not found
 
  
 components:

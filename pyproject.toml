@@ -32,6 +32,9 @@ generate-requirements = "scripts:generate_requirements"
 
 [tool.pylint.'MESSAGES CONTROL']
 max-line-length = 140
+disable = [
+    "R0903",  # number of methods
+]
 
 [build-system]
 requires = ["poetry-core"]
