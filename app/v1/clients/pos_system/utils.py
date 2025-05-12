@@ -4,7 +4,19 @@ from typing import List, Optional, Dict, Any, Tuple
 from enum import Enum
 import requests
 from pydantic import BaseModel, model_validator, Field
-from app.v1.models import Client, Responsibilities, DocumentType, CityDetail
+from app.v1.models import (
+    Client,
+    Responsibilities,
+    DocumentType,
+    CityDetail,
+    Invoice,
+    Business,
+    Employee,
+    Payment,
+    InvoiceProduct,
+    Product,
+    TaxInfo
+)
 from app.v1.utils.errors import FetchDataError
 
 
@@ -198,7 +210,7 @@ def define_payload_from_client(client: Client, pirpos_id: Optional[str] = None) 
 
 
 def get_clients_by_filter(
-    search_filter: str, headers: Dict[str, Any]
+    domain: str, search_filter: str, headers: Dict[str, Any]
 ) -> Tuple[List[Client], List[str]]:
     """Get pirpos clients using some filter.
 
@@ -213,7 +225,7 @@ def get_clients_by_filter(
         List[Client]: Clients found
     """
     url = (
-        "https://api.pirpos.com/clients?pagination=true"
+        f"{domain}/clients?pagination=true"
         f"&limit=10&page=0&clientData={search_filter}&"
     )
 
@@ -237,3 +249,92 @@ def get_clients_by_filter(
 
     clients: List[Client] = define_client_from_pirpos_response(raw_clients)
     return clients, list_ids
+
+
+def define_invoice_products(raw_products: List[Dict[str, Any]]) -> List[InvoiceProduct]:
+    """Define invioce products from response."""
+    products: List[InvoiceProduct] = []
+    for raw_product in raw_products:
+        product_taxes: List[TaxInfo] = []
+        for raw_tax in raw_product.get("taxes", []):
+            product_taxes.append(TaxInfo(
+                tax_name=raw_tax["taxName"],
+                value=raw_tax["taxValue"]
+            ))
+
+        product = Product(
+            product_id=raw_product["code"],
+            name=raw_product["name"],
+            price=float(raw_product["totalBruto"]),
+            taxes=product_taxes
+        )
+        products.append(InvoiceProduct(
+            product=product,
+            price=product.price,
+            quantity=raw_product["quantity"],
+            tax=product_taxes
+        ))
+    return products
+
+
+def define_payments(raw_payments: List[Dict[str, Any]]) -> List[Payment]:
+    """Define payments from response."""
+    payments: List[Payment] = []
+    for raw_payment in raw_payments:
+        payments.append(
+            Payment(
+                payment_name=raw_payment["paymentMethod"],
+                payment_value=raw_payment["value"],
+            )
+        )
+    return payments
+
+
+def get_invoice_from_json(
+    raw_data: List[Dict[str, Any]], prefix: str, number: int
+) -> Optional[Invoice]:
+    """Transform the Json data to get an Invoice object."""
+    if not raw_data:
+        return None
+    first_invoice = raw_data[0]
+
+    business = Business(**first_invoice["business"])
+
+    employee_name = first_invoice["seller"]["name"]
+    seller = Employee(name=employee_name, employee_id=employee_name)
+
+    employee_name = first_invoice["cashier"]["name"]
+    cachier = Employee(name=employee_name, employee_id=employee_name)
+
+    raw_client_data = first_invoice["client"]
+    client = Client(
+        name=raw_client_data["name"],
+        last_name=raw_client_data.get("last_name"),
+        email=raw_client_data.get("email"),
+        document=raw_client_data["document"],
+        check_digit=raw_client_data.get("checkDigit"),
+        document_type=int(raw_client_data["idDocumentType"]),  # type: ignore
+        phone=raw_client_data.get("phone"),
+        address=raw_client_data.get("address"),
+        responsibilities=raw_client_data["responsibilities"],
+    )
+
+    payments = define_payments(first_invoice["products"])
+    products = define_invoice_products(first_invoice["products"])
+
+    invoice = Invoice(
+        business=business,
+        cachier=cachier,
+        sell_point=first_invoice["table"]["name"],
+        seller=seller,
+        client=client,
+        created_on=first_invoice["createdOn"],
+        anulated_date=first_invoice.get("canceled", {}).get("date"),
+        invoice_prefix=prefix,
+        invoice_number=number,
+        payment_method=payments,
+        products=products,
+        total=first_invoice["total"],
+        status=first_invoice["status"],
+    )
+    return invoice

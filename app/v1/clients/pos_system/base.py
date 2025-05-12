@@ -1,7 +1,7 @@
 """System provider Base Object."""
 from abc import ABC, abstractmethod
 from typing import Optional
-from app.v1.models import Client
+from app.v1.models import Client, Invoice
 
 
 class SystemProvider(ABC):
@@ -18,3 +18,7 @@ class SystemProvider(ABC):
     @abstractmethod
     def update_client(self, client: Client) -> None:
         """Update client in the POS system."""
+
+    @abstractmethod
+    def get_invoice(self, prefix: str, number: int) -> Optional[Invoice]:
+        """Get a specific invoice."""

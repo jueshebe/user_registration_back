@@ -6,13 +6,14 @@ import json
 from logging import Logger
 import logging
 import requests
-from app.v1.models import Client
+from app.v1.models import Client, Invoice
 from app.v1.clients.pos_system.base import SystemProvider
 from app.v1.clients.pos_system.utils import (
     define_payload_from_client,
     get_clients_by_filter,
+    get_invoice_from_json
 )
-from app.v1.utils.errors import CredentialsError, SendDataError
+from app.v1.utils.errors import CredentialsError, SendDataError, FetchDataError
 
 
 class PirposConnector(SystemProvider):
@@ -28,6 +29,7 @@ class PirposConnector(SystemProvider):
         self.__logger = logger
         self.__pirpos_username = pirpos_username
         self.__pirpos_password = pirpos_password
+        self.__pirpos_domain = "https://api.pirpos.com"
         self.__pirpos_access_token = self.__get_pirpos_access_token()
         self.__logger.info("Pirpos connector initialized.")
 
@@ -43,7 +45,7 @@ class PirposConnector(SystemProvider):
         str
             token
         """
-        url = "https://api.pirpos.com/login"
+        url = f"{self.__pirpos_domain}/login"
         values = {
             "name": "",
             "email": self.__pirpos_username,
@@ -93,7 +95,7 @@ class PirposConnector(SystemProvider):
             Optional[Client]: Client found.
         """
         headers = self.__get_headers()
-        clients, _ = get_clients_by_filter(str(document), headers)
+        clients, _ = get_clients_by_filter(self.__pirpos_domain, str(document), headers)
 
         if len(clients) == 0:
             return None
@@ -123,7 +125,7 @@ class PirposConnector(SystemProvider):
             raise SendDataError("Client already exists in PirPos")
 
         headers = self.__get_headers()
-        url = "https://api.pirpos.com/clients"
+        url = f"{self.__pirpos_domain}/clients"
         payload: str = define_payload_from_client(client)
 
         try:
@@ -144,7 +146,7 @@ class PirposConnector(SystemProvider):
             client (Client): Client to update.
         """
         headers = self.__get_headers()
-        clients, ids = get_clients_by_filter(str(client.document), headers)
+        clients, ids = get_clients_by_filter(self.__pirpos_domain, str(client.document), headers)
 
         if len(clients) == 0:
             raise SendDataError(
@@ -161,7 +163,7 @@ class PirposConnector(SystemProvider):
             raise SendDataError(
                 f"Can't update a client. More than one client found for document: {client.document}"
             )
-        url = "https://api.pirpos.com/clients"
+        url = f"{self.__pirpos_domain}/clients"
         payload: str = define_payload_from_client(
             client, clients_with_same_document[0][1]
         )
@@ -175,6 +177,23 @@ class PirposConnector(SystemProvider):
         if not response.ok:
             raise SendDataError(f"Can't update customer in PirPos\n {response.text}")
 
+    def get_invoice(self, prefix: str, number: int) -> Optional[Invoice]:
+        """Get a specific invoice."""
+        headers = self.__get_headers()
+        url = f"{self.__pirpos_domain}/invoices"
+        params = {"number": f"{prefix}{number}"}
+        try:
+            response = requests.request(
+                "GET", url, headers=headers, params=params, timeout=20
+            )
+        except Exception as error:
+            raise FetchDataError(
+                f"Can't get an invoice from PirPos\n {error}"
+            ) from error
+        if not response.ok:
+            raise FetchDataError(f"Non 200 response getting an invoice from PirPos\n {response.text}")
+        return get_invoice_from_json(response.json(), prefix, number)
+
 
 if __name__ == "__main__":
     user_name = os.getenv("PIRPOS_USER_NAME")
@@ -184,13 +203,16 @@ if __name__ == "__main__":
         raise ValueError("PIRPOS_USER_NAME and PIRPOS_PASSWORD must be set")
 
     connector = PirposConnector(user_name, user_password, logging.getLogger())
-    test_client = connector.get_client(90038794)
-    new_client = Client(
-        name="julian2",
-        last_name="herrera",
-        document=123456789,
-        document_type=11,  # type: ignore
-    )
-    connector.upload_client(new_client)
-    new_client.name = "julian3"
-    connector.update_client(new_client)
+    # test_client = connector.get_client(90038794)
+    # new_client = Client(
+    #     name="julian2",
+    #     last_name="herrera",
+    #     document=123456789,
+    #     document_type=11,  # type: ignore
+    # )
+    # connector.upload_client(new_client)
+    # new_client.name = "julian3"
+    # connector.update_client(new_client)
+
+    invoice = connector.get_invoice("FVE", 29984)
+    print(invoice)
