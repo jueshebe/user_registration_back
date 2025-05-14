@@ -10,12 +10,12 @@ from app.v1.use_cases import InvoicesManager
 invoices = Blueprint("invoices", __name__)
 
 
-@invoices.route("/<string:prefix>/<int:invoice_number>", methods=["GET"])
+@invoices.route("/<string:invoice_id>", methods=["GET"])
 def get_user(
-    prefix: str, invoice_number: int, invoices_manager: InvoicesManager
+    invoice_id: str, invoices_manager: InvoicesManager
 ) -> Response:
     """Get user."""
-    invoice = invoices_manager.get_invoice(prefix, invoice_number)
+    invoice = invoices_manager.get_invoice(invoice_id)
     if invoice:  # check if the requester knows at least 3 fields of the object
         return Response(
             response=invoice.model_dump_json(), status=200, content_type="application/json"

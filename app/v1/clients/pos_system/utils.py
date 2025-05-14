@@ -291,7 +291,7 @@ def define_payments(raw_payments: List[Dict[str, Any]]) -> List[Payment]:
 
 
 def get_invoice_from_json(
-    raw_data: List[Dict[str, Any]], prefix: str, number: int
+    raw_data: List[Dict[str, Any]], invoice_id: str
 ) -> Optional[Invoice]:
     """Transform the Json data to get an Invoice object."""
     if not raw_data:
@@ -330,8 +330,8 @@ def get_invoice_from_json(
         client=client,
         created_on=first_invoice["createdOn"],
         anulated_date=first_invoice.get("canceled", {}).get("date"),
-        invoice_prefix=prefix,
-        invoice_number=number,
+        invoice_prefix=first_invoice["invoicePrefix"],
+        invoice_number=first_invoice["seq"],
         payment_method=payments,
         products=products,
         total=first_invoice["total"],

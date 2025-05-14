@@ -177,11 +177,11 @@ class PirposConnector(SystemProvider):
         if not response.ok:
             raise SendDataError(f"Can't update customer in PirPos\n {response.text}")
 
-    def get_invoice(self, prefix: str, number: int) -> Optional[Invoice]:
+    def get_invoice(self, invoice_id: str) -> Optional[Invoice]:
         """Get a specific invoice."""
         headers = self.__get_headers()
         url = f"{self.__pirpos_domain}/invoices"
-        params = {"number": f"{prefix}{number}"}
+        params = {"number": invoice_id}
         try:
             response = requests.request(
                 "GET", url, headers=headers, params=params, timeout=20
@@ -192,7 +192,7 @@ class PirposConnector(SystemProvider):
             ) from error
         if not response.ok:
             raise FetchDataError(f"Non 200 response getting an invoice from PirPos\n {response.text}")
-        return get_invoice_from_json(response.json(), prefix, number)
+        return get_invoice_from_json(response.json(), invoice_id)
 
 
 if __name__ == "__main__":

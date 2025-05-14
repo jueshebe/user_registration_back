@@ -16,15 +16,14 @@ class InvoicesManager():
         """
         self.__connector = connector
 
-    def get_invoice(self, prefix: str, number: int) -> Optional[Invoice]:
+    def get_invoice(self, invoice_id: str) -> Optional[Invoice]:
         """Get an invoice.
 
         Args:
-            prefix (str): prefix used in this invoice.
-            number (str): invoice number.
+            invoice_id (str): invoice identifier.
 
         Returns:
             Optional[Invoice]: required invoice.
         """
-        invoice = self.__connector.get_invoice(prefix, number)
+        invoice = self.__connector.get_invoice(invoice_id)
         return invoice

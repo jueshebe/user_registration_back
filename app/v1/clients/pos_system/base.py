@@ -20,5 +20,5 @@ class SystemProvider(ABC):
         """Update client in the POS system."""
 
     @abstractmethod
-    def get_invoice(self, prefix: str, number: int) -> Optional[Invoice]:
+    def get_invoice(self, invoice_id: str) -> Optional[Invoice]:
         """Get a specific invoice."""

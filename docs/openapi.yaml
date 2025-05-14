@@ -191,23 +191,17 @@ paths:
         '404':
           description: Client not found
 
-  /pos-connector/invoices/{prefix}/{invoice_number}:
+  /pos-connector/invoices/{invoice_id}:
     get:
       tags:
         - Invoices
       summary: Get some invoice
       description: Retrieve invoice data
       parameters:
-        - name: prefix
+        - name: invoice_id
           in: path
           required: true
-          description: Invoice prefix. Something like 'FVE'
-          schema:
-            type: string
-        - name: invoice_number
-          in: path
-          required: true
-          description: Invoice number. Something like 12345
+          description: Invoice identifier. Something like FVE12345
           schema:
             type: string
       responses:
