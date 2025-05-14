@@ -319,7 +319,7 @@ def get_invoice_from_json(
         responsibilities=raw_client_data["responsibilities"],
     )
 
-    payments = define_payments(first_invoice["products"])
+    payments = define_payments(first_invoice["paid"]["paymentMethodValue"])
     products = define_invoice_products(first_invoice["products"])
 
     invoice = Invoice(
