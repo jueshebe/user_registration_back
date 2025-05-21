@@ -15,7 +15,8 @@ from app.v1.models import (
     Payment,
     InvoiceProduct,
     Product,
-    TaxInfo
+    ProductTaxInfo,
+    InvoiceTaxes
 )
 from app.v1.utils.errors import FetchDataError
 
@@ -255,9 +256,9 @@ def define_invoice_products(raw_products: List[Dict[str, Any]]) -> List[InvoiceP
     """Define invioce products from response."""
     products: List[InvoiceProduct] = []
     for raw_product in raw_products:
-        product_taxes: List[TaxInfo] = []
+        product_taxes: List[ProductTaxInfo] = []
         for raw_tax in raw_product.get("taxes", []):
-            product_taxes.append(TaxInfo(
+            product_taxes.append(ProductTaxInfo(
                 tax_name=raw_tax["taxName"],
                 value=raw_tax["taxValue"]
             ))
@@ -265,12 +266,14 @@ def define_invoice_products(raw_products: List[Dict[str, Any]]) -> List[InvoiceP
         product = Product(
             product_id=raw_product["code"],
             name=raw_product["name"],
-            price=float(raw_product["totalBruto"]),
+            base_price=float(raw_product["totalBruto"])/float(raw_product["quantity"]),
+            total_price=float(raw_product["price"]),
             taxes=product_taxes
         )
         products.append(InvoiceProduct(
             product=product,
-            price=product.price,
+            total_bruto=float(raw_product["totalBruto"]),
+            total_price=float(raw_product["total"]),
             quantity=raw_product["quantity"],
             tax=product_taxes
         ))
@@ -288,6 +291,20 @@ def define_payments(raw_payments: List[Dict[str, Any]]) -> List[Payment]:
             )
         )
     return payments
+
+
+def define_resume_taxes(raw_resume_taxes: List[Dict[str, Any]]) -> List[InvoiceTaxes]:
+    """Get resume invoice taxes."""
+    resume_taxes: List[InvoiceTaxes]= []
+    for raw_tax in raw_resume_taxes:
+        applied_tax = InvoiceTaxes(
+            tax_name=raw_tax["name"],
+            value=raw_tax["value"],
+            base=raw_tax["base"],
+            total=raw_tax["total"]
+        )
+        resume_taxes.append(applied_tax)
+    return resume_taxes
 
 
 def get_invoice_from_json(
@@ -321,6 +338,7 @@ def get_invoice_from_json(
 
     payments = define_payments(first_invoice["paid"]["paymentMethodValue"])
     products = define_invoice_products(first_invoice["products"])
+    resume_taxes = define_resume_taxes(first_invoice["taxes"])
 
     invoice = Invoice(
         business=business,
@@ -335,6 +353,7 @@ def get_invoice_from_json(
         payment_method=payments,
         products=products,
         total=first_invoice["total"],
+        taxes=resume_taxes,
         status=first_invoice["status"],
     )
     return invoice

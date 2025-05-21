@@ -1,7 +1,7 @@
 """Application models."""
 
 from app.v1.models.client import Client, DocumentType, Responsibilities, CityDetail
-from app.v1.models.product import TaxInfo, Product
+from app.v1.models.product import ProductTaxInfo, Product
 from app.v1.models.invoice import (
     Business,
     Employee,
@@ -9,6 +9,8 @@ from app.v1.models.invoice import (
     InvoiceProduct,
     Payment,
     InvoiceStatus,
+    InvoiceTaxes
+    
 )
 
 
@@ -17,7 +19,7 @@ __all__ = [
     "DocumentType",
     "Responsibilities",
     "CityDetail",
-    "TaxInfo",
+    "ProductTaxInfo",
     "Product",
     "Employee",
     "Business",
@@ -25,4 +27,5 @@ __all__ = [
     "InvoiceProduct",
     "Payment",
     "InvoiceStatus",
+    "InvoiceTaxes"
 ]

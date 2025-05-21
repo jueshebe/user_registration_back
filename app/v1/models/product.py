@@ -4,7 +4,7 @@ from pydantic import BaseModel, field_validator
 from app.v1.utils.utils import normalize
 
 
-class TaxInfo(BaseModel):
+class ProductTaxInfo(BaseModel):
     """Stock information."""
 
     tax_name: str
@@ -16,8 +16,9 @@ class Product(BaseModel):
 
     product_id: str
     name: str
-    price: float
-    taxes: List[TaxInfo]
+    base_price: float
+    total_price: float
+    taxes: List[ProductTaxInfo]
 
     @field_validator("name")
     @classmethod

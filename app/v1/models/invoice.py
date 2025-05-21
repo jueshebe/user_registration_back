@@ -5,7 +5,7 @@ from enum import Enum
 from datetime import datetime
 from pydantic import BaseModel
 from app.v1.models.client import Client
-from app.v1.models.product import Product, TaxInfo
+from app.v1.models.product import Product, ProductTaxInfo
 
 
 class Employee(BaseModel):
@@ -23,9 +23,10 @@ class InvoiceProduct(BaseModel):
     """
 
     product: Product
-    price: float
+    total_bruto: float
+    total_price: float
     quantity: int
-    tax: Optional[List[TaxInfo]]
+    tax: Optional[List[ProductTaxInfo]]
 
 
 class Payment(BaseModel):
@@ -51,6 +52,15 @@ class Business(BaseModel):
     phone: Optional[str] = None
 
 
+class InvoiceTaxes(BaseModel):
+    """Resume Invoice taxes."""
+
+    tax_name: str
+    value: float
+    base: float
+    total: float
+
+
 class Invoice(BaseModel):
     """Invoice model."""
 
@@ -66,4 +76,5 @@ class Invoice(BaseModel):
     payment_method: List[Payment]
     products: List[InvoiceProduct]
     total: float
+    taxes: List[InvoiceTaxes]
     status: InvoiceStatus = InvoiceStatus.PAID
