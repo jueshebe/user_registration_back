@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "app"
+name = "app" 
 version = "0.1.0"
 description = "Flask backend to manage user registration process"
 authors = ["Julian Herrera <julianherrerab95@gmail.com>"]
