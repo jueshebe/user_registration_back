@@ -9,7 +9,8 @@ from app.v1.models.invoice import (
     InvoiceProduct,
     Payment,
     InvoiceStatus,
-    InvoiceTaxes
+    InvoiceTaxes,
+    DianValidation
     
 )
 
@@ -28,4 +29,5 @@ __all__ = [
     "Payment",
     "InvoiceStatus",
     "InvoiceTaxes"
+    "DianValidation"
 ]

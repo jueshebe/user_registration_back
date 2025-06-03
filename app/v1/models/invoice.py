@@ -61,6 +61,19 @@ class InvoiceTaxes(BaseModel):
     total: float
 
 
+class DianValidation(BaseModel):
+    """Dian validation model."""
+
+    prefix: str
+    resolution: str
+    range_initial: str
+    range_final: str
+    valid_from: datetime
+    valid_until: datetime
+    cufe: Optional[str] = None
+    sent_at: Optional[datetime] = None
+
+
 class Invoice(BaseModel):
     """Invoice model."""
 
@@ -78,3 +91,4 @@ class Invoice(BaseModel):
     total: float
     taxes: List[InvoiceTaxes]
     status: InvoiceStatus = InvoiceStatus.PAID
+    dian_validation: DianValidation

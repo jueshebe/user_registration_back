@@ -16,7 +16,8 @@ from app.v1.models import (
     InvoiceProduct,
     Product,
     ProductTaxInfo,
-    InvoiceTaxes
+    InvoiceTaxes,
+    DianValidation
 )
 from app.v1.utils.errors import FetchDataError
 
@@ -307,6 +308,23 @@ def define_resume_taxes(raw_resume_taxes: List[Dict[str, Any]]) -> List[InvoiceT
     return resume_taxes
 
 
+def define_dian_validation(raw_einvoice: Dict[str, Any]) -> DianValidation:
+    """Define Dian validation from response."""
+    dian_data = raw_einvoice.get("DIAN", {})
+    resolution = dian_data.get("resolution", {})
+    dian_validation = DianValidation(
+        prefix=resolution["prefix"],
+        resolution=resolution["number"],
+        range_initial=resolution["rangeInitial"],
+        range_final=resolution["rangeFinal"],
+        valid_from=resolution["validFrom"],
+        valid_until=resolution["validUntil"],
+        cufe=dian_data.get("cufe"),
+        sent_at=dian_data.get("sentAt"),
+    )
+    return dian_validation
+
+
 def get_invoice_from_json(
     raw_data: List[Dict[str, Any]], invoice_id: str
 ) -> Optional[Invoice]:
@@ -324,6 +342,7 @@ def get_invoice_from_json(
     cachier = Employee(name=employee_name, employee_id=employee_name)
 
     raw_client_data = first_invoice["client"]
+
     client = Client(
         name=raw_client_data["name"],
         last_name=raw_client_data.get("last_name"),
@@ -339,6 +358,7 @@ def get_invoice_from_json(
     payments = define_payments(first_invoice["paid"]["paymentMethodValue"])
     products = define_invoice_products(first_invoice["products"])
     resume_taxes = define_resume_taxes(first_invoice["taxes"])
+    dian_validation = define_dian_validation(first_invoice.get("eInvoice", {}))
 
     invoice = Invoice(
         business=business,
@@ -355,5 +375,6 @@ def get_invoice_from_json(
         total=first_invoice["total"],
         taxes=resume_taxes,
         status=first_invoice["status"],
+        dian_validation=dian_validation,
     )
     return invoice
