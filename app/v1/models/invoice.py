@@ -92,3 +92,4 @@ class Invoice(BaseModel):
     taxes: List[InvoiceTaxes]
     status: InvoiceStatus = InvoiceStatus.PAID
     dian_validation: DianValidation
+    qr_code: Optional[str] = None

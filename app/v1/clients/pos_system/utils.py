@@ -2,8 +2,12 @@
 
 from typing import List, Optional, Dict, Any, Tuple
 from enum import Enum
+import base64
+from io import BytesIO
 import requests
 from pydantic import BaseModel, model_validator, Field
+import qrcode
+import qrcode.image.svg
 from app.v1.models import (
     Client,
     Responsibilities,
@@ -17,7 +21,7 @@ from app.v1.models import (
     Product,
     ProductTaxInfo,
     InvoiceTaxes,
-    DianValidation
+    DianValidation,
 )
 from app.v1.utils.errors import FetchDataError
 
@@ -259,25 +263,27 @@ def define_invoice_products(raw_products: List[Dict[str, Any]]) -> List[InvoiceP
     for raw_product in raw_products:
         product_taxes: List[ProductTaxInfo] = []
         for raw_tax in raw_product.get("taxes", []):
-            product_taxes.append(ProductTaxInfo(
-                tax_name=raw_tax["taxName"],
-                value=raw_tax["taxValue"]
-            ))
+            product_taxes.append(
+                ProductTaxInfo(tax_name=raw_tax["taxName"], value=raw_tax["taxValue"])
+            )
 
         product = Product(
             product_id=raw_product["code"],
             name=raw_product["name"],
-            base_price=float(raw_product["totalBruto"])/float(raw_product["quantity"]),
+            base_price=float(raw_product["totalBruto"])
+            / float(raw_product["quantity"]),
             total_price=float(raw_product["price"]),
-            taxes=product_taxes
+            taxes=product_taxes,
         )
-        products.append(InvoiceProduct(
-            product=product,
-            total_bruto=float(raw_product["totalBruto"]),
-            total_price=float(raw_product["total"]),
-            quantity=raw_product["quantity"],
-            tax=product_taxes
-        ))
+        products.append(
+            InvoiceProduct(
+                product=product,
+                total_bruto=float(raw_product["totalBruto"]),
+                total_price=float(raw_product["total"]),
+                quantity=raw_product["quantity"],
+                tax=product_taxes,
+            )
+        )
     return products
 
 
@@ -296,13 +302,13 @@ def define_payments(raw_payments: List[Dict[str, Any]]) -> List[Payment]:
 
 def define_resume_taxes(raw_resume_taxes: List[Dict[str, Any]]) -> List[InvoiceTaxes]:
     """Get resume invoice taxes."""
-    resume_taxes: List[InvoiceTaxes]= []
+    resume_taxes: List[InvoiceTaxes] = []
     for raw_tax in raw_resume_taxes:
         applied_tax = InvoiceTaxes(
             tax_name=raw_tax["name"],
             value=raw_tax["value"],
             base=raw_tax["base"],
-            total=raw_tax["total"]
+            total=raw_tax["total"],
         )
         resume_taxes.append(applied_tax)
     return resume_taxes
@@ -325,9 +331,42 @@ def define_dian_validation(raw_einvoice: Dict[str, Any]) -> DianValidation:
     return dian_validation
 
 
-def get_invoice_from_json(
-    raw_data: List[Dict[str, Any]], invoice_id: str
-) -> Optional[Invoice]:
+def get_qr_code(invoice: Invoice) -> str:
+    """Define QR code for invoice."""
+    val_iva = sum(tax.value for tax in invoice.taxes if tax.tax_name == "IVA")
+    val_other_tax = sum(tax.total for tax in invoice.taxes if tax.tax_name != "IVA")
+    val_base = invoice.total - val_iva - val_other_tax
+    message = f"""
+    NumFac: {invoice.invoice_prefix}{invoice.invoice_number}
+    FecFac: {invoice.created_on.strftime('%Y-%m-%d')}
+    HorFac: {invoice.created_on.strftime('%H:%M:%S')}
+    NitFac: {invoice.business.nit}
+    DocAdq: {invoice.client.document}
+    ValFac: {val_base:.2f}
+    ValIva: {val_iva:.2f}
+    ValOtroIm: {val_other_tax:.2f}
+    ValTolFac: {invoice.total:.2f}
+    CUFE: {invoice.dian_validation.cufe}
+    https://catalogo-vpfe.dian.gov.co/document/searchqr?documentkey={invoice.dian_validation.cufe}
+    """
+    factory = qrcode.image.svg.SvgImage
+    qr = qrcode.QRCode(
+        version=1,  # Puedes aumentar esto si el contenido es largo
+        # error_correction=qrcode.constants.ERROR_CORRECT_H,
+        box_size=35,  # ¡Aumenta esto para mayor resolución!
+        border=4,
+    )
+    qr.add_data(message)
+    qr.make(fit=True)
+
+    img = qr.make_image(fill_color="black", back_color="white", image_factory=factory)
+    buffer = BytesIO()
+    img.save(buffer)
+    base64_qr = base64.b64encode(buffer.getvalue()).decode("utf-8")
+    return base64_qr
+
+
+def get_invoice_from_json(raw_data: List[Dict[str, Any]]) -> Optional[Invoice]:
     """Transform the Json data to get an Invoice object."""
     if not raw_data:
         return None
@@ -377,4 +416,6 @@ def get_invoice_from_json(
         status=first_invoice["status"],
         dian_validation=dian_validation,
     )
+    if dian_validation.cufe:
+        invoice.qr_code = get_qr_code(invoice)
     return invoice

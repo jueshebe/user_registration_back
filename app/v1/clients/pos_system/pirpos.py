@@ -192,7 +192,7 @@ class PirposConnector(SystemProvider):
             ) from error
         if not response.ok:
             raise FetchDataError(f"Non 200 response getting an invoice from PirPos\n {response.text}")
-        return get_invoice_from_json(response.json(), invoice_id)
+        return get_invoice_from_json(response.json())
 
 
 if __name__ == "__main__":
