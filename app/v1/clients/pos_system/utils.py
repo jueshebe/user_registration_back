@@ -86,7 +86,7 @@ mapping_responsibility_name = {
     "O_15": ResponsibilityName.O_15,
     "O_23": ResponsibilityName.O_23,
     "O_47": ResponsibilityName.O_47,
-    "R-99-PN": ResponsibilityName.R_99_PN,
+    "R_99_PN": ResponsibilityName.R_99_PN,
 }
 
 
@@ -123,7 +123,7 @@ class ClientResponseValidator(BaseModel):
             if isinstance(values["responsibilities"], Responsibilities):
                 values["responsibilities"] = values["responsibilities"].value
             values["responsibilityName"] = mapping_responsibility_name[
-                values["responsibilities"]
+                values["responsibilities"].replace("-", "_")
             ].value
 
         return values
