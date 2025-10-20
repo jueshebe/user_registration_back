@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "app"
+name = "app" 
 version = "0.1.0"
 description = "Flask backend to manage user registration process"
 authors = ["Julian Herrera <julianherrerab95@gmail.com>"]
@@ -15,6 +15,8 @@ flask-cors = "^5.0.1"
 pydantic = "^2.10.6"
 email-validator = "^2.2.0"
 debugpy = "^1.8.13"
+qrcode = "^8.2"
+pillow = "^11.2.1"
 
 
 [tool.poetry.group.dev.dependencies]
@@ -32,6 +34,9 @@ generate-requirements = "scripts:generate_requirements"
 
 [tool.pylint.'MESSAGES CONTROL']
 max-line-length = 140
+disable = [
+    "R0903",  # number of methods
+]
 
 [build-system]
 requires = ["poetry-core"]

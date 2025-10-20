@@ -2,9 +2,27 @@
 
 from typing import List, Optional, Dict, Any, Tuple
 from enum import Enum
+import base64
+from io import BytesIO
 import requests
 from pydantic import BaseModel, model_validator, Field
-from app.v1.models import Client, Responsibilities, DocumentType, CityDetail
+import qrcode
+import qrcode.image.svg
+from app.v1.models import (
+    Client,
+    Responsibilities,
+    DocumentType,
+    CityDetail,
+    Invoice,
+    Business,
+    Employee,
+    Payment,
+    InvoiceProduct,
+    Product,
+    ProductTaxInfo,
+    InvoiceTaxes,
+    DianValidation,
+)
 from app.v1.utils.errors import FetchDataError
 
 
@@ -68,7 +86,7 @@ mapping_responsibility_name = {
     "O_15": ResponsibilityName.O_15,
     "O_23": ResponsibilityName.O_23,
     "O_47": ResponsibilityName.O_47,
-    "R-99-PN": ResponsibilityName.R_99_PN,
+    "R_99_PN": ResponsibilityName.R_99_PN,
 }
 
 
@@ -105,7 +123,7 @@ class ClientResponseValidator(BaseModel):
             if isinstance(values["responsibilities"], Responsibilities):
                 values["responsibilities"] = values["responsibilities"].value
             values["responsibilityName"] = mapping_responsibility_name[
-                values["responsibilities"]
+                values["responsibilities"].replace("-", "_")
             ].value
 
         return values
@@ -198,7 +216,7 @@ def define_payload_from_client(client: Client, pirpos_id: Optional[str] = None) 
 
 
 def get_clients_by_filter(
-    search_filter: str, headers: Dict[str, Any]
+    domain: str, search_filter: str, headers: Dict[str, Any]
 ) -> Tuple[List[Client], List[str]]:
     """Get pirpos clients using some filter.
 
@@ -213,7 +231,7 @@ def get_clients_by_filter(
         List[Client]: Clients found
     """
     url = (
-        "https://api.pirpos.com/clients?pagination=true"
+        f"{domain}/clients?pagination=true"
         f"&limit=10&page=0&clientData={search_filter}&"
     )
 
@@ -237,3 +255,167 @@ def get_clients_by_filter(
 
     clients: List[Client] = define_client_from_pirpos_response(raw_clients)
     return clients, list_ids
+
+
+def define_invoice_products(raw_products: List[Dict[str, Any]]) -> List[InvoiceProduct]:
+    """Define invioce products from response."""
+    products: List[InvoiceProduct] = []
+    for raw_product in raw_products:
+        product_taxes: List[ProductTaxInfo] = []
+        for raw_tax in raw_product.get("taxes", []):
+            product_taxes.append(
+                ProductTaxInfo(tax_name=raw_tax["taxName"], value=raw_tax["taxValue"])
+            )
+
+        product = Product(
+            product_id=raw_product["code"],
+            name=raw_product["name"],
+            base_price=float(raw_product["totalBruto"])
+            / float(raw_product["quantity"]),
+            total_price=float(raw_product["price"]),
+            taxes=product_taxes,
+        )
+        products.append(
+            InvoiceProduct(
+                product=product,
+                total_bruto=float(raw_product["totalBruto"]),
+                total_price=float(raw_product["total"]),
+                quantity=raw_product["quantity"],
+                tax=product_taxes,
+            )
+        )
+    return products
+
+
+def define_payments(raw_payments: List[Dict[str, Any]]) -> List[Payment]:
+    """Define payments from response."""
+    payments: List[Payment] = []
+    for raw_payment in raw_payments:
+        payments.append(
+            Payment(
+                payment_name=raw_payment["paymentMethod"],
+                payment_value=raw_payment["value"],
+            )
+        )
+    return payments
+
+
+def define_resume_taxes(raw_resume_taxes: List[Dict[str, Any]]) -> List[InvoiceTaxes]:
+    """Get resume invoice taxes."""
+    resume_taxes: List[InvoiceTaxes] = []
+    for raw_tax in raw_resume_taxes:
+        applied_tax = InvoiceTaxes(
+            tax_name=raw_tax["name"],
+            value=raw_tax["value"],
+            base=raw_tax["base"],
+            total=raw_tax["total"],
+        )
+        resume_taxes.append(applied_tax)
+    return resume_taxes
+
+
+def define_dian_validation(raw_einvoice: Dict[str, Any]) -> DianValidation:
+    """Define Dian validation from response."""
+    dian_data = raw_einvoice.get("DIAN", {})
+    resolution = dian_data.get("resolution", {})
+    dian_validation = DianValidation(
+        prefix=resolution["prefix"],
+        resolution=resolution["number"],
+        range_initial=resolution["rangeInitial"],
+        range_final=resolution["rangeFinal"],
+        valid_from=resolution["validFrom"],
+        valid_until=resolution["validUntil"],
+        cufe=dian_data.get("cufe"),
+        sent_at=dian_data.get("sentAt"),
+    )
+    return dian_validation
+
+
+def get_qr_code(invoice: Invoice) -> str:
+    """Define QR code for invoice."""
+    val_iva = sum(tax.value for tax in invoice.taxes if tax.tax_name == "IVA")
+    val_other_tax = sum(tax.total for tax in invoice.taxes if tax.tax_name != "IVA")
+    val_base = invoice.total - val_iva - val_other_tax
+    message = f"""
+    NumFac: {invoice.invoice_prefix}{invoice.invoice_number}
+    FecFac: {invoice.created_on.strftime('%Y-%m-%d')}
+    HorFac: {invoice.created_on.strftime('%H:%M:%S')}
+    NitFac: {invoice.business.nit}
+    DocAdq: {invoice.client.document}
+    ValFac: {val_base:.2f}
+    ValIva: {val_iva:.2f}
+    ValOtroIm: {val_other_tax:.2f}
+    ValTolFac: {invoice.total:.2f}
+    CUFE: {invoice.dian_validation.cufe}
+    https://catalogo-vpfe.dian.gov.co/document/searchqr?documentkey={invoice.dian_validation.cufe}
+    """
+    factory = qrcode.image.svg.SvgImage
+    qr = qrcode.QRCode(
+        version=1,  # Puedes aumentar esto si el contenido es largo
+        # error_correction=qrcode.constants.ERROR_CORRECT_H,
+        box_size=35,  # ¡Aumenta esto para mayor resolución!
+        border=4,
+    )
+    qr.add_data(message)
+    qr.make(fit=True)
+
+    img = qr.make_image(fill_color="black", back_color="white", image_factory=factory)
+    buffer = BytesIO()
+    img.save(buffer)
+    base64_qr = base64.b64encode(buffer.getvalue()).decode("utf-8")
+    return base64_qr
+
+
+def get_invoice_from_json(raw_data: List[Dict[str, Any]]) -> Optional[Invoice]:
+    """Transform the Json data to get an Invoice object."""
+    if not raw_data:
+        return None
+    first_invoice = raw_data[0]
+
+    business = Business(**first_invoice["business"])
+
+    employee_name = first_invoice["seller"]["name"]
+    seller = Employee(name=employee_name, employee_id=employee_name)
+
+    employee_name = first_invoice["cashier"]["name"]
+    cachier = Employee(name=employee_name, employee_id=employee_name)
+
+    raw_client_data = first_invoice["client"]
+
+    client = Client(
+        name=raw_client_data["name"],
+        last_name=raw_client_data.get("last_name"),
+        email=raw_client_data.get("email"),
+        document=raw_client_data["document"],
+        check_digit=raw_client_data.get("checkDigit"),
+        document_type=int(raw_client_data["idDocumentType"]),  # type: ignore
+        phone=raw_client_data.get("phone"),
+        address=raw_client_data.get("address"),
+        responsibilities=raw_client_data["responsibilities"],
+    )
+
+    payments = define_payments(first_invoice["paid"]["paymentMethodValue"])
+    products = define_invoice_products(first_invoice["products"])
+    resume_taxes = define_resume_taxes(first_invoice["taxes"])
+    dian_validation = define_dian_validation(first_invoice.get("eInvoice", {}))
+
+    invoice = Invoice(
+        business=business,
+        cachier=cachier,
+        sell_point=first_invoice["table"]["name"],
+        seller=seller,
+        client=client,
+        created_on=first_invoice["createdOn"],
+        anulated_date=first_invoice.get("canceled", {}).get("date"),
+        invoice_prefix=first_invoice["invoicePrefix"],
+        invoice_number=first_invoice["seq"],
+        payment_method=payments,
+        products=products,
+        total=first_invoice["total"],
+        taxes=resume_taxes,
+        status=first_invoice["status"],
+        dian_validation=dian_validation,
+    )
+    if dian_validation.cufe:
+        invoice.qr_code = get_qr_code(invoice)
+    return invoice

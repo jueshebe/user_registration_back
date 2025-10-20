@@ -4,7 +4,7 @@ import os
 import logging
 from flask_injector import singleton, Binder
 from app.v1.clients import PirposConnector, DummyConnector, SystemProvider
-from app.v1.use_cases import UsersManager
+from app.v1.use_cases import UsersManager, InvoicesManager
 
 
 def dependencies(binder: Binder) -> None:
@@ -32,6 +32,8 @@ def dependencies(binder: Binder) -> None:
     else:
         pos_client = PirposConnector(user_name, password, logger)
     users_manager = UsersManager(pos_client)
+    invoices_manager = InvoicesManager(pos_client)
     binder.bind(UsersManager, to=users_manager, scope=singleton)
+    binder.bind(InvoicesManager, to=invoices_manager, scope=singleton)
 
     logger.info("Dependencies manager finished")

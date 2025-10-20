@@ -3,7 +3,7 @@
 from flask_injector import FlaskInjector
 from flask import Flask
 from flask_cors import CORS
-from app.v1.api import ping, users
+from app.v1.api import ping, users, invoices
 from app.v1.module import dependencies
 
 # Active endpoints noted as following:
@@ -11,6 +11,7 @@ from app.v1.module import dependencies
 PUBLIC_ENDPOINTS = (
     ("/", ping),
     ("/users", users),
+    ("/invoices", invoices),
 )
 
 PUBLIC_URL_PREFIX = "pos-connector"

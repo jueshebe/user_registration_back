@@ -1,7 +1,7 @@
 """Dummy client."""
 
 from typing import Optional
-from app.v1.models import Client
+from app.v1.models import Client, Invoice
 from app.v1.clients.pos_system.base import SystemProvider
 
 
@@ -36,4 +36,8 @@ class DummyConnector(SystemProvider):
         Args:
             client (Client): Client to update.
         """
+        return None
+
+    def get_invoice(self, prefix: str, number: int) -> Optional[Invoice]:
+        """Get a specific invoice."""
         return None
